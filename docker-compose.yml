@@ -1,6 +1,6 @@
 services:
   yoto-api:
-    build: ./app
+    image: yang517/yoto-downloader:latest
     container_name: yoto_downloader
     restart: unless-stopped
     ports:
