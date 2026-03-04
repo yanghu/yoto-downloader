@@ -7,6 +7,6 @@ services:
       - "8000:8000" # 暴露给局域网的端口
     volumes:
       # 将 NAS 的实际存放路径映射到容器内的 /downloads
-      - /volume1/data/music/yoto_downloads:/downloads
+      - ./downloads:/downloads
     environment:
       - TZ=America/Los_Angeles

@@ -60,9 +60,9 @@ def crop_thumbnail_to_square(title: str):
 
 def process_download(url: str):
     """后台下载任务"""
-    ydl_opts: dict = {
+    ydl_opts: yt_dlp._Params = {  # Explicitly annotate as _Params
         'format': 'bestaudio/best',
-        'outtmpl': f'{DOWNLOAD_DIR}/%(title)s.%(ext)s',
+        'outtmpl': f'{DOWNLOAD_DIR}/%(title)s.%(ext)s',  # Ensure this is a string
         'postprocessors': [
             {
                 'key': 'FFmpegExtractAudio',
@@ -70,8 +70,8 @@ def process_download(url: str):
                 'preferredquality': '192',
             }
         ],
-        'writethumbnail': True,
-        'updatetime': False,
+        'writethumbnail': True,  # Ensure this is a boolean
+        'updatetime': False,  # Ensure this is a boolean
     }
 
     try:
