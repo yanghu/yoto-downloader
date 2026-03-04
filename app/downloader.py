@@ -1,17 +1,32 @@
 import os
+from datetime import datetime
 import yt_dlp
 from image import crop_thumbnail_to_square
-from config import AUDIO_DIR, COVER_DIR
+from config import AUDIO_BASE_DIR, COVER_BASE_DIR
 
-def process_download(url: str):
-    """后台下载任务"""
+def process_download(query: str):
+    """后台下载任务，支持直接 URL 或 文本搜索"""
+    
+    # 1. 动态获取当前本地日期
+    now = datetime.now()
+    month_folder = now.strftime("%Y-%m") # 例如：2026-03
+    day_folder = now.strftime("%d")      # 例如：03
+    
+    # 2. 动态拼装今天的专属存放路径
+    current_audio_dir = os.path.join(AUDIO_BASE_DIR, month_folder, day_folder)
+    current_cover_dir = os.path.join(COVER_BASE_DIR, month_folder, day_folder)
+    
+    # yt-dlp 非常智能，如果 current_audio_dir 这些多级目录不存在，它会自动创建
+    
+    download_target = query if query.startswith("http") else f"ytsearch1:{query}"
+    
     ydl_opts = {
         'format': 'bestaudio/best',
-        'noplaylist': True,  # 遇到 v= 和 list= 同时存在时，只下载单曲
-        # 修复：直接利用 outtmpl 字典显式指定不同类型文件的绝对路径，这种方式最稳妥
+        'noplaylist': True,
         'outtmpl': {
-            'default': f'{AUDIO_DIR}/%(title)s.%(ext)s',   # 音频文件存入 audio 目录
-            'thumbnail': f'{COVER_DIR}/%(title)s.%(ext)s', # 封面图片存入 covers 目录
+            # 将下载路径指向刚刚算出来的今天专属目录
+            'default': f'{current_audio_dir}/%(title)s.%(ext)s',
+            'thumbnail': f'{current_cover_dir}/%(title)s.%(ext)s',
         },
         'postprocessors': [
             {
@@ -25,18 +40,21 @@ def process_download(url: str):
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # 1. 提取信息
-            info_dict = ydl.extract_info(url, download=False)
+            # 提取信息
+            info_dict = ydl.extract_info(download_target, download=False)
+            if 'entries' in info_dict:
+                info_dict = info_dict['entries'][0]
             
-            # 2. 获取文件名。由于我们配置了不同的 paths，这里用 os.path.basename 只提取纯净的文件名部分
+            # 获取最终生成的文件名
             filename = ydl.prepare_filename(info_dict)
             base_filename = os.path.splitext(os.path.basename(filename))[0]
             
-            # 3. 执行下载
-            ydl.download([url])
+            # 真正执行下载
+            ydl.download([download_target])
             
-            # 4. 把文件名和目录传给图片处理器进行处理
-            crop_thumbnail_to_square(base_filename, COVER_DIR)
+            # 把今天的动态封面目录传给图片处理器
+            crop_thumbnail_to_square(base_filename, current_cover_dir)
+            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {info_dict.get('title')}")
             
     except Exception as e:
-        print(f"下载失败 {url}: {e}")
+        print(f"❌ 下载失败 {query}: {e}")
