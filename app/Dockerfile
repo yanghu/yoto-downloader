@@ -1,14 +1,15 @@
 FROM python:3.11-slim
 
+
 # 1. 更新 apt 并安装 ffmpeg、curl 和 unzip
-# 2. 用 curl 官方脚本一键安装 Deno (用于破解 YouTube 最新的反爬虫 JS 挑战)
+# 2. 安装 Deno，并将其移动到全局目录 /usr/local/bin，允许任何非 root 用户 (如 PUID) 调用它
 RUN apt-get update && \
     apt-get install -y ffmpeg curl unzip && \
     curl -fsSL https://deno.land/install.sh | sh && \
+    mv /root/.deno/bin/deno /usr/local/bin/deno && \
+    chmod +x /usr/local/bin/deno && \
+    rm -rf /root/.deno && \
     rm -rf /var/lib/apt/lists/*
-
-# 将 Deno 加入环境变量，让 yt-dlp 能找到它
-ENV PATH="/root/.deno/bin:${PATH}"
 
 WORKDIR /app
 
