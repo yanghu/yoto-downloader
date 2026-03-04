@@ -7,6 +7,7 @@ def process_download(url: str):
     """后台下载任务"""
     ydl_opts = {
         'format': 'bestaudio/best',
+        'noplaylist': True,  # 遇到 v= 和 list= 同时存在时，只下载单曲
         # 修复：直接利用 outtmpl 字典显式指定不同类型文件的绝对路径，这种方式最稳妥
         'outtmpl': {
             'default': f'{AUDIO_DIR}/%(title)s.%(ext)s',   # 音频文件存入 audio 目录
