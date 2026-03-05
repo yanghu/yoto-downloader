@@ -2,6 +2,8 @@
 
 A self-hosted, highly automated tool for downloading and preparing audio for [Yoto Player](https://us.yotoplay.com/) "Make Your Own" cards. 🚀
 
+[📖 中文文档](README_cn.md)
+
 ## 🌟 Why This Exists? (The Pain Point)
 
 Every parent knows the scene: your child hears a song they love and immediately asks, **"Can I have this on my Yoto?"** Currently, the process is full of friction:
