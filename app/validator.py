@@ -1,0 +1,25 @@
+"""URL validation helpers for the download endpoint."""
+
+from urllib.parse import urlparse, parse_qs
+
+
+def validate_url(url: str) -> None:
+    """Validate a download URL.
+
+    Raises ValueError with a user-facing message if the URL is invalid.
+    """
+    if "youtube.com" not in url and "youtu.be" not in url:
+        raise ValueError("非法链接")
+
+    qs = parse_qs(urlparse(url).query)
+    if "list" in qs and "v" not in qs:
+        raise ValueError("不支持播放列表链接")
+
+
+def extract_url_id(url: str) -> str:
+    """Return the path + query portion of a URL (strips the hostname)."""
+    parsed = urlparse(url)
+    url_id = parsed.path.lstrip("/")
+    if parsed.query:
+        url_id += f"?{parsed.query}"
+    return url_id
