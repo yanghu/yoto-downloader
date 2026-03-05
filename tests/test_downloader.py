@@ -19,12 +19,14 @@ def reset_yt_dlp_mock():
     yield
 
 
-def _setup_ydl_mock(title="Test Video", artist="", ext="m4a"):
+def _setup_ydl_mock(title="Test Video", artist="", album="", ext="m4a"):
     """Configure the mocked YoutubeDL context manager to return fake info."""
     mock_ydl_instance = MagicMock()
     info = {'title': title, 'ext': ext}
     if artist:
         info['artist'] = artist
+    if album:
+        info['album'] = album
     mock_ydl_instance.extract_info.return_value = info
     mock_ydl_instance.prepare_filename.return_value = f"/fake/path/{title}.{ext}"
     mock_yt_dlp.YoutubeDL.return_value.__enter__ = MagicMock(return_value=mock_ydl_instance)
@@ -105,8 +107,8 @@ def test_output_paths_use_todays_date():
     assert f"/{expected_day}/" in normalized
 
 
-def test_outtmpl_includes_artist_placeholder():
-    """Filename template should include %(artist)s."""
+def test_outtmpl_includes_artist_and_album_placeholders():
+    """Filename template should include %(artist)s and %(album)s."""
     _setup_ydl_mock()
 
     with patch('downloader.crop_thumbnail_to_square'):
@@ -114,20 +116,23 @@ def test_outtmpl_includes_artist_placeholder():
 
     opts = mock_yt_dlp.YoutubeDL.call_args[0][0]
     assert '%(artist)s' in opts['outtmpl']['default']
+    assert '%(album)s' in opts['outtmpl']['default']
     assert '%(artist)s' in opts['outtmpl']['thumbnail']
+    assert '%(album)s' in opts['outtmpl']['thumbnail']
 
 
-def test_discord_notification_includes_artist(capsys):
-    """When artist metadata exists, notification includes 'Title - Artist'."""
-    _setup_ydl_mock(title="Hakuna Matata", artist="Hans Zimmer")
+def test_discord_notification_includes_artist_and_album(capsys):
+    """When artist+album metadata exist, notification includes 'Title - Artist [Album]'."""
+    _setup_ydl_mock(title="Hakuna Matata", artist="Hans Zimmer", album="The Lion King")
 
     with patch('downloader.crop_thumbnail_to_square'), \
          patch('downloader.send_discord_notification') as mock_notify:
-        process_download("https://www.youtube.com/watch?v=artist_test")
+        process_download("https://www.youtube.com/watch?v=artist_album_test")
 
-    # The first positional arg to send_discord_notification is the display name
     display_name = mock_notify.call_args[0][0]
-    assert display_name == "Hakuna Matata - Hans Zimmer"
+    assert "Hakuna Matata" in display_name
+    assert "Hans Zimmer" in display_name
+    assert "The Lion King" in display_name
 
 
 def test_discord_notification_no_artist_fallback(capsys):

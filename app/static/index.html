@@ -181,6 +181,43 @@
             box-shadow: 0 0 0 3px var(--accent-glow);
         }
 
+        /* ── Layout Toggle ── */
+        .layout-toggle {
+            display: flex;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .layout-btn {
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-btn:hover {
+            color: var(--text-secondary);
+            background: var(--bg-card-hover);
+        }
+
+        .layout-btn.active {
+            color: var(--accent);
+            background: rgba(99, 102, 241, 0.12);
+        }
+
+        .layout-btn+.layout-btn {
+            border-left: 1px solid var(--border);
+        }
+
         .select-all-wrapper {
             display: flex;
             align-items: center;
@@ -287,13 +324,164 @@
             border-color: var(--accent);
         }
 
-        /* ══════════════════════════ SONG GRID ══════════════════════════ */
+        /* ══════════════════════════ LIST VIEW ══════════════════════════ */
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 0 24px 40px;
         }
 
+        .song-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .list-header {
+            display: grid;
+            grid-template-columns: 42px 52px 1.2fr 0.8fr 0.8fr 110px 70px 80px;
+            gap: 12px;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 4px;
+            position: relative;
+            user-select: none;
+        }
+
+        .list-header-cell {
+            position: relative;
+            padding-right: 8px;
+        }
+
+        .col-resize-handle {
+            position: absolute;
+            right: -6px;
+            top: 0;
+            bottom: 0;
+            width: 12px;
+            cursor: col-resize;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .col-resize-handle::after {
+            content: '';
+            width: 2px;
+            height: 60%;
+            background: transparent;
+            border-radius: 1px;
+            transition: background var(--transition);
+        }
+
+        .col-resize-handle:hover::after,
+        .col-resize-handle.dragging::after {
+            background: var(--accent);
+        }
+
+        .song-row {
+            display: grid;
+            grid-template-columns: 42px 52px 1.2fr 0.8fr 0.8fr 110px 70px 80px;
+            gap: 12px;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .song-row:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .song-row.selected {
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+
+        .row-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: var(--bg-secondary);
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .row-cover-placeholder {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--bg-secondary), #1a1a2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            opacity: 0.4;
+            flex-shrink: 0;
+        }
+
+        .row-info {
+            min-width: 0;
+        }
+
+        .row-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .row-artist {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .row-date {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .row-size {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            text-align: right;
+        }
+
+        .row-artist-col,
+        .row-album-col {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-badge-duplicate {
+            display: inline-block;
+            background: var(--duplicate-badge);
+            color: var(--duplicate-text);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        /* ══════════════════════════ CARD / GRID VIEW ══════════════════════════ */
         .song-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -382,7 +570,7 @@
             color: var(--text-tertiary);
         }
 
-        .badge-duplicate {
+        .card-badge-duplicate {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -564,6 +752,16 @@
             }
         }
 
+        /* ══════════════════════════ RESIZE OVERLAY ══════════════════════════ */
+        body.col-resizing {
+            cursor: col-resize !important;
+            user-select: none !important;
+        }
+
+        body.col-resizing * {
+            cursor: col-resize !important;
+        }
+
         /* ══════════════════════════ RESPONSIVE ══════════════════════════ */
         @media (max-width: 640px) {
             .header-inner {
@@ -585,6 +783,29 @@
                 max-width: 100%;
             }
 
+            /* List view mobile */
+            .list-header {
+                display: none;
+            }
+
+            .song-row {
+                grid-template-columns: 42px 44px 1fr auto;
+                gap: 8px;
+                padding: 10px 12px;
+            }
+
+            .row-artist-col,
+            .row-album-col,
+            .row-date,
+            .row-size {
+                display: none;
+            }
+
+            .row-title {
+                font-size: 13px;
+            }
+
+            /* Card view mobile */
             .song-grid {
                 grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
                 gap: 10px;
@@ -634,7 +855,11 @@
     <div class="toolbar" id="toolbar">
         <div class="search-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" class="search-input" id="search-input" placeholder="搜索歌曲..." autocomplete="off">
+            <input type="text" class="search-input" id="search-input" placeholder="搜索歌曲或歌手..." autocomplete="off">
+        </div>
+        <div class="layout-toggle" id="layout-toggle">
+            <button class="layout-btn active" id="btn-list" title="列表视图">☰</button>
+            <button class="layout-btn" id="btn-card" title="卡片视图">▦</button>
         </div>
         <label class="select-all-wrapper">
             <input type="checkbox" class="checkbox" id="select-all">
@@ -652,7 +877,25 @@
         <div id="loading">
             <div class="spinner"></div>
         </div>
+        <!-- LIST VIEW -->
+        <div id="list-view-wrapper" style="display:none;">
+            <div class="list-header" id="list-header">
+                <span class="list-header-cell"></span>
+                <span class="list-header-cell">封面<div class="col-resize-handle" data-col="1"></div></span>
+                <span class="list-header-cell">歌曲<div class="col-resize-handle" data-col="2"></div></span>
+                <span class="list-header-cell">歌手<div class="col-resize-handle" data-col="3"></div></span>
+                <span class="list-header-cell">专辑<div class="col-resize-handle" data-col="4"></div></span>
+                <span class="list-header-cell">日期<div class="col-resize-handle" data-col="5"></div></span>
+                <span class="list-header-cell">
+                    <div class="col-resize-handle" data-col="6"></div>
+                </span>
+                <span class="list-header-cell" style="text-align:right">大小</span>
+            </div>
+            <div class="song-list" id="song-list"></div>
+        </div>
+        <!-- CARD VIEW -->
         <div class="song-grid" id="song-grid" style="display:none;"></div>
+        <!-- EMPTY STATE -->
         <div class="empty-state" id="empty-state" style="display:none;">
             <div class="empty-icon">📭</div>
             <h2>暂无下载</h2>
@@ -681,9 +924,13 @@
             // ─────────────────── State ───────────────────
             let allSongs = [];
             let selectedPaths = new Set();
+            let layoutMode = localStorage.getItem('yoto-layout-mode') || 'list';
 
             // ─────────────────── DOM refs ───────────────────
-            const grid = document.getElementById('song-grid');
+            const listViewWrapper = document.getElementById('list-view-wrapper');
+            const listHeader = document.getElementById('list-header');
+            const songList = document.getElementById('song-list');
+            const songGrid = document.getElementById('song-grid');
             const loading = document.getElementById('loading');
             const emptyState = document.getElementById('empty-state');
             const searchInput = document.getElementById('search-input');
@@ -695,14 +942,34 @@
             const modalCancel = document.getElementById('modal-cancel');
             const modalConfirm = document.getElementById('modal-confirm');
             const toastContainer = document.getElementById('toast-container');
+            const btnList = document.getElementById('btn-list');
+            const btnCard = document.getElementById('btn-card');
+
+            // ─────────────────── Layout Toggle ───────────────────
+            function setLayout(mode) {
+                layoutMode = mode;
+                localStorage.setItem('yoto-layout-mode', mode);
+                btnList.classList.toggle('active', mode === 'list');
+                btnCard.classList.toggle('active', mode === 'card');
+                render();
+            }
+
+            btnList.addEventListener('click', () => setLayout('list'));
+            btnCard.addEventListener('click', () => setLayout('card'));
+
+            // Set initial toggle state
+            btnList.classList.toggle('active', layoutMode === 'list');
+            btnCard.classList.toggle('active', layoutMode === 'card');
 
             // ─────────────────── Init ───────────────────
+            initColumnWidths();
             fetchSongs();
 
             // ─────────────────── Data fetch ───────────────────
             async function fetchSongs() {
                 loading.style.display = '';
-                grid.style.display = 'none';
+                listViewWrapper.style.display = 'none';
+                songGrid.style.display = 'none';
                 emptyState.style.display = 'none';
 
                 try {
@@ -725,18 +992,59 @@
                     : allSongs;
 
                 if (filtered.length === 0) {
-                    grid.style.display = 'none';
+                    listViewWrapper.style.display = 'none';
+                    songGrid.style.display = 'none';
                     emptyState.style.display = '';
+                } else if (layoutMode === 'list') {
+                    listViewWrapper.style.display = '';
+                    songGrid.style.display = 'none';
+                    emptyState.style.display = 'none';
                 } else {
-                    grid.style.display = '';
+                    listViewWrapper.style.display = 'none';
+                    songGrid.style.display = '';
                     emptyState.style.display = 'none';
                 }
 
-                grid.innerHTML = filtered.map(song => cardHTML(song)).join('');
+                if (layoutMode === 'list') {
+                    songList.innerHTML = filtered.map(song => rowHTML(song)).join('');
+                } else {
+                    songGrid.innerHTML = filtered.map(song => cardHTML(song)).join('');
+                }
+
                 updateStats(filtered);
                 updateSelection();
             }
 
+            // ─────────────────── List Row HTML ───────────────────
+            function rowHTML(song) {
+                const checked = selectedPaths.has(song.audio_path) ? 'checked' : '';
+                const selectedClass = selectedPaths.has(song.audio_path) ? ' selected' : '';
+                const coverImg = song.cover_path
+                    ? `<img class="row-cover" src="/downloads/${encodeURI(song.cover_path)}" alt="${esc(song.title)}" loading="lazy">`
+                    : `<div class="row-cover-placeholder">🎵</div>`;
+                const dupeBadge = song.is_duplicate
+                    ? `<span class="list-badge-duplicate">重复</span>`
+                    : '';
+
+                return `
+        <div class="song-row${selectedClass}" data-path="${esc(song.audio_path)}">
+            <input type="checkbox" class="checkbox item-checkbox" ${checked}
+                   data-path="${esc(song.audio_path)}"
+                   onclick="event.stopPropagation()">
+            ${coverImg}
+            <div class="row-info">
+                <div class="row-title" title="${esc(song.title)}">${esc(song.title)}</div>
+                ${song.artist ? `<div class="row-artist">${esc(song.artist)}${song.album ? ` · ${esc(song.album)}` : ''}</div>` : (song.album ? `<div class="row-artist">${esc(song.album)}</div>` : '')}
+            </div>
+            <span class="row-artist-col" title="${esc(song.artist)}">${esc(song.artist)}</span>
+            <span class="row-album-col" title="${esc(song.album)}">${esc(song.album)}</span>
+            <span class="row-date">📅 ${song.date}</span>
+            ${dupeBadge}
+            <span class="row-size">${formatSize(song.size_bytes)}</span>
+        </div>`;
+            }
+
+            // ─────────────────── Card HTML ───────────────────
             function cardHTML(song) {
                 const checked = selectedPaths.has(song.audio_path) ? 'checked' : '';
                 const selectedClass = selectedPaths.has(song.audio_path) ? ' selected' : '';
@@ -744,12 +1052,12 @@
                     ? `<img class="card-cover" src="/downloads/${encodeURI(song.cover_path)}" alt="${esc(song.title)}" loading="lazy">`
                     : `<div class="card-cover-placeholder">🎵</div>`;
                 const dupeBadge = song.is_duplicate
-                    ? `<span class="badge-duplicate">重复</span>`
+                    ? `<span class="card-badge-duplicate">重复</span>`
                     : '';
 
                 return `
             <div class="song-card${selectedClass}" data-path="${esc(song.audio_path)}">
-                <input type="checkbox" class="checkbox card-checkbox" ${checked}
+                <input type="checkbox" class="checkbox card-checkbox item-checkbox" ${checked}
                        data-path="${esc(song.audio_path)}"
                        onclick="event.stopPropagation()">
                 ${dupeBadge}
@@ -767,87 +1075,97 @@
 
             // ─────────────────── Stats ───────────────────
             function updateStats(songs) {
-                const list = songs || allSongs;
-                document.getElementById('stat-total').textContent = list.length;
+                const s = songs || allSongs;
+                document.getElementById('stat-total').textContent = s.length;
                 document.getElementById('stat-size').textContent = formatSize(
-                    list.reduce((sum, s) => sum + s.size_bytes, 0)
+                    s.reduce((sum, x) => sum + x.size_bytes, 0)
                 );
                 document.getElementById('stat-dupes').textContent =
-                    list.filter(s => s.is_duplicate).length;
+                    s.filter(x => x.is_duplicate).length;
             }
 
             // ─────────────────── Selection ───────────────────
+            function getActiveContainer() {
+                return layoutMode === 'list' ? songList : songGrid;
+            }
+
+            function getItemSelector() {
+                return layoutMode === 'list' ? '.song-row' : '.song-card';
+            }
+
             function updateSelection() {
                 const count = selectedPaths.size;
                 deleteBtn.disabled = count === 0;
                 selectedCountEl.textContent = count > 0 ? `已选 ${count} 首` : '';
 
-                // Sync select-all checkbox
-                const visible = grid.querySelectorAll('.card-checkbox');
+                const container = getActiveContainer();
+                const visible = container.querySelectorAll('.item-checkbox');
                 const allChecked = visible.length > 0 && [...visible].every(cb => cb.checked);
                 selectAll.checked = allChecked;
             }
 
-            // Delegate click on grid
-            grid.addEventListener('click', (e) => {
-                const cb = e.target.closest('.card-checkbox');
+            // Delegate clicks on both containers
+            function handleContainerClick(e) {
+                const cb = e.target.closest('.item-checkbox');
                 if (cb) {
                     toggleSelect(cb.dataset.path, cb.checked);
                     return;
                 }
-                const card = e.target.closest('.song-card');
-                if (card) {
-                    const checkbox = card.querySelector('.card-checkbox');
+                const item = e.target.closest('.song-row, .song-card');
+                if (item) {
+                    const checkbox = item.querySelector('.item-checkbox');
                     checkbox.checked = !checkbox.checked;
                     toggleSelect(checkbox.dataset.path, checkbox.checked);
                 }
-            });
+            }
+
+            songList.addEventListener('click', handleContainerClick);
+            songGrid.addEventListener('click', handleContainerClick);
 
             function toggleSelect(path, on) {
                 if (on) selectedPaths.add(path);
                 else selectedPaths.delete(path);
 
-                const card = grid.querySelector(`.song-card[data-path="${CSS.escape(path)}"]`);
-                if (card) card.classList.toggle('selected', on);
+                const container = getActiveContainer();
+                const selector = getItemSelector();
+                const item = container.querySelector(`${selector}[data-path="${CSS.escape(path)}"]`);
+                if (item) item.classList.toggle('selected', on);
                 updateSelection();
             }
 
             selectAll.addEventListener('change', () => {
                 const checked = selectAll.checked;
-                grid.querySelectorAll('.card-checkbox').forEach(cb => {
+                const container = getActiveContainer();
+                container.querySelectorAll('.item-checkbox').forEach(cb => {
                     cb.checked = checked;
                     if (checked) selectedPaths.add(cb.dataset.path);
                     else selectedPaths.delete(cb.dataset.path);
 
-                    const card = cb.closest('.song-card');
-                    if (card) card.classList.toggle('selected', checked);
+                    const item = cb.closest('.song-row, .song-card');
+                    if (item) item.classList.toggle('selected', checked);
                 });
                 updateSelection();
             });
 
-            searchInput.addEventListener('input', () => {
-                render();
-            });
+            searchInput.addEventListener('input', () => { render(); });
 
             // ─────────────────── Delete flow ───────────────────
             deleteBtn.addEventListener('click', () => {
                 if (selectedPaths.size === 0) return;
                 const songs = allSongs.filter(s => selectedPaths.has(s.audio_path));
                 modalFileList.innerHTML = songs
-                    .map(s => `<div class="modal-file-item">🎵 ${esc(s.title)} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`)
+                    .map(s => {
+                        const label = s.artist ? `${esc(s.title)} — ${esc(s.artist)}` : esc(s.title);
+                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`;
+                    })
                     .join('');
                 document.getElementById('modal-message').textContent =
                     `将删除 ${songs.length} 个文件（包括对应的封面图）：`;
                 modalOverlay.classList.add('active');
             });
 
-            modalCancel.addEventListener('click', () => {
-                modalOverlay.classList.remove('active');
-            });
-
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) modalOverlay.classList.remove('active');
-            });
+            modalCancel.addEventListener('click', () => { modalOverlay.classList.remove('active'); });
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); });
 
             modalConfirm.addEventListener('click', async () => {
                 modalOverlay.classList.remove('active');
@@ -875,6 +1193,96 @@
                     deleteBtn.innerHTML = '<span>🗑️</span><span>删除所选</span>';
                 }
             });
+
+            // ─────────────────── Resizable Columns ───────────────────
+            const DEFAULT_COLS = '42px 52px 1.2fr 0.8fr 0.8fr 110px 70px 80px';
+            let colWidths = null; // null = use default fr-based, array = px-based
+
+            function initColumnWidths() {
+                const saved = localStorage.getItem('yoto-column-widths');
+                if (saved) {
+                    try {
+                        colWidths = JSON.parse(saved);
+                        applyColumnWidths();
+                    } catch (e) {
+                        colWidths = null;
+                    }
+                }
+            }
+
+            function applyColumnWidths() {
+                if (!colWidths) return;
+                const tpl = colWidths.map(w => w + 'px').join(' ');
+                listHeader.style.gridTemplateColumns = tpl;
+                songList.querySelectorAll('.song-row').forEach(row => {
+                    row.style.gridTemplateColumns = tpl;
+                });
+            }
+
+            function resetColumnWidths() {
+                listHeader.style.gridTemplateColumns = '';
+                songList.querySelectorAll('.song-row').forEach(row => {
+                    row.style.gridTemplateColumns = '';
+                });
+            }
+
+            // Convert current fr/px layout into absolute px widths
+            function snapshotColumnWidths() {
+                const cells = listHeader.children;
+                const widths = [];
+                for (let i = 0; i < cells.length; i++) {
+                    widths.push(cells[i].getBoundingClientRect().width);
+                }
+                return widths;
+            }
+
+            // Set up drag handles
+            listHeader.addEventListener('mousedown', (e) => {
+                const handle = e.target.closest('.col-resize-handle');
+                if (!handle) return;
+                e.preventDefault();
+
+                const colIdx = parseInt(handle.dataset.col, 10);
+                if (!colWidths) {
+                    colWidths = snapshotColumnWidths();
+                }
+                const startX = e.clientX;
+                const startW = colWidths[colIdx];
+                const MIN_WIDTH = 40;
+
+                handle.classList.add('dragging');
+                document.body.classList.add('col-resizing');
+
+                function onMove(ev) {
+                    const delta = ev.clientX - startX;
+                    colWidths[colIdx] = Math.max(MIN_WIDTH, startW + delta);
+                    applyColumnWidths();
+                }
+
+                function onUp() {
+                    handle.classList.remove('dragging');
+                    document.body.classList.remove('col-resizing');
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    localStorage.setItem('yoto-column-widths', JSON.stringify(colWidths));
+                }
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+
+            // After each render in list mode, re-apply saved column widths
+            const _origRender = render;
+            // (We patch inline instead — see render() which calls applyColumnWidths via list mode check)
+
+            // Observe: render() already calls songList.innerHTML = ..., so we need to
+            // re-apply column widths after list render. We do this with a MutationObserver:
+            const colObserver = new MutationObserver(() => {
+                if (layoutMode === 'list' && colWidths) {
+                    applyColumnWidths();
+                }
+            });
+            colObserver.observe(songList, { childList: true });
 
             // ─────────────────── Helpers ───────────────────
             function formatSize(bytes) {

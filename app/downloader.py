@@ -21,9 +21,9 @@ def process_download(query: str):
     
     download_target = query if query.startswith("http") else f"ytsearch1:{query}"
     
-    # 文件名格式：Title - Artist（歌名在前，歌手在后）
-    # yt-dlp 的 %(artist)s 对 YouTube Music 有效；普通 YouTube 视频可能为空
-    name_template = '%(title)s - %(artist)s'
+    # 文件名格式：Title - Artist [Album]
+    # yt-dlp 的 %(artist)s 和 %(album)s 对 YouTube Music 有效
+    name_template = '%(title)s - %(artist)s [%(album)s]'
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -61,7 +61,13 @@ def process_download(query: str):
             
             title = info_dict.get('title', query)
             artist = info_dict.get('artist', '')
-            display_name = f"{title} - {artist}" if artist else title
+            album = info_dict.get('album', '')
+            parts = [title]
+            if artist:
+                parts.append(artist)
+            if album:
+                parts[-1] += f" [{album}]"
+            display_name = ' - '.join(parts)
             print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {display_name}")
             send_discord_notification(display_name, success=True, detail=f"已归档至 {month_folder}/{day_folder}")
             

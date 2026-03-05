@@ -3,22 +3,36 @@
 import os
 from config import AUDIO_BASE_DIR, COVER_BASE_DIR
 
-# Separator used in filenames: "Title - Artist.m4a"
+# Separator used in filenames: "Title - Artist [Album].m4a"
 _SEPARATOR = " - "
 
 
-def _parse_filename(filename_no_ext: str) -> tuple[str, str]:
-    """Parse a 'Title - Artist' filename into (title, artist).
+def _parse_filename(filename_no_ext: str) -> tuple[str, str, str]:
+    """Parse a 'Title - Artist [Album]' filename into (title, artist, album).
 
-    If no separator is found, returns (filename, "").
-    Uses the *last* occurrence of ' - ' so titles containing ' - ' are preserved.
+    Steps:
+      1. Extract album from trailing [...] brackets (if present).
+      2. Split the remainder on the *last* ' - ' into title and artist.
+
+    Returns (title, artist, album). Artist and album may be empty strings.
     """
-    idx = filename_no_ext.rfind(_SEPARATOR)
+    remaining = filename_no_ext
+    album = ""
+
+    # Extract [Album] from end
+    if remaining.endswith("]"):
+        bracket_idx = remaining.rfind("[")
+        if bracket_idx != -1:
+            album = remaining[bracket_idx + 1:-1].strip()
+            remaining = remaining[:bracket_idx].strip()
+
+    # Split remaining into Title - Artist
+    idx = remaining.rfind(_SEPARATOR)
     if idx == -1:
-        return filename_no_ext, ""
-    title = filename_no_ext[:idx]
-    artist = filename_no_ext[idx + len(_SEPARATOR):]
-    return title, artist
+        return remaining, "", album
+    title = remaining[:idx]
+    artist = remaining[idx + len(_SEPARATOR):]
+    return title, artist, album
 
 
 def list_all_songs() -> list[dict]:
@@ -27,12 +41,13 @@ def list_all_songs() -> list[dict]:
     Each record contains:
       - title: str          (song title parsed from filename)
       - artist: str         (artist parsed from filename, may be empty)
+      - album: str          (album parsed from filename, may be empty)
       - display_name: str   (full filename without extension, used for cover matching)
       - date: str           (YYYY-MM-DD derived from the YYYY-MM/DD path)
       - audio_path: str     (path relative to /downloads)
       - cover_path: str|None (relative path to best available cover, or None)
       - size_bytes: int
-      - is_duplicate: bool  (True when the same title exists on multiple dates)
+      - is_duplicate: bool  (True when the same display_name exists on multiple dates)
     """
     songs: list[dict] = []
     title_dates: dict[str, set[str]] = {}
@@ -47,7 +62,7 @@ def list_all_songs() -> list[dict]:
 
             full_path = os.path.join(root, fname)
             display_name = os.path.splitext(fname)[0]
-            title, artist = _parse_filename(display_name)
+            title, artist, album = _parse_filename(display_name)
 
             # Extract date from directory structure: .../audio/YYYY-MM/DD/file
             rel_from_audio = os.path.relpath(root, AUDIO_BASE_DIR)
@@ -69,6 +84,7 @@ def list_all_songs() -> list[dict]:
             songs.append({
                 "title": title,
                 "artist": artist,
+                "album": album,
                 "display_name": display_name,
                 "date": date_str,
                 "audio_path": audio_rel,

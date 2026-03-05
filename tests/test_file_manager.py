@@ -69,6 +69,7 @@ def test_list_songs_returns_correct_records(tmp_downloads):
     for s in songs:
         assert "title" in s
         assert "artist" in s
+        assert "album" in s
         assert "display_name" in s
         assert "date" in s
         assert "audio_path" in s
@@ -150,30 +151,49 @@ def test_delete_preserves_other_files(tmp_downloads):
 
 def test_parse_filename_with_artist():
     """Standard 'Title - Artist' format."""
-    title, artist = _parse_filename("Hakuna Matata - Hans Zimmer")
+    title, artist, album = _parse_filename("Hakuna Matata - Hans Zimmer")
     assert title == "Hakuna Matata"
     assert artist == "Hans Zimmer"
+    assert album == ""
 
 
 def test_parse_filename_without_artist():
     """Legacy filename without separator → artist is empty."""
-    title, artist = _parse_filename("Hakuna Matata")
+    title, artist, album = _parse_filename("Hakuna Matata")
     assert title == "Hakuna Matata"
     assert artist == ""
+    assert album == ""
 
 
 def test_parse_filename_title_contains_dash():
     """Title with ' - ' in it → uses last occurrence."""
-    title, artist = _parse_filename("Part 1 - The Beginning - Artist Name")
+    title, artist, album = _parse_filename("Part 1 - The Beginning - Artist Name")
     assert title == "Part 1 - The Beginning"
     assert artist == "Artist Name"
+    assert album == ""
+
+
+def test_parse_filename_with_album():
+    """Full 'Title - Artist [Album]' format."""
+    title, artist, album = _parse_filename("Hakuna Matata - Hans Zimmer [The Lion King]")
+    assert title == "Hakuna Matata"
+    assert artist == "Hans Zimmer"
+    assert album == "The Lion King"
+
+
+def test_parse_filename_album_no_artist():
+    """'Title [Album]' without artist."""
+    title, artist, album = _parse_filename("Hakuna Matata [The Lion King]")
+    assert title == "Hakuna Matata"
+    assert artist == ""
+    assert album == "The Lion King"
 
 
 def test_list_songs_with_artist_filename(tmp_path):
-    """Files named 'Title - Artist.m4a' have artist parsed correctly."""
+    """Files named 'Title - Artist [Album].m4a' have all fields parsed correctly."""
     audio_base = tmp_path / "audio" / "2026-03" / "04"
     audio_base.mkdir(parents=True)
-    (audio_base / "Hakuna Matata - Hans Zimmer.m4a").write_bytes(b"\x00" * 1000)
+    (audio_base / "Hakuna Matata - Hans Zimmer [The Lion King].m4a").write_bytes(b"\x00" * 1000)
 
     with patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")), \
          patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")):
@@ -182,4 +202,5 @@ def test_list_songs_with_artist_filename(tmp_path):
     assert len(songs) == 1
     assert songs[0]["title"] == "Hakuna Matata"
     assert songs[0]["artist"] == "Hans Zimmer"
-    assert songs[0]["display_name"] == "Hakuna Matata - Hans Zimmer"
+    assert songs[0]["album"] == "The Lion King"
+    assert songs[0]["display_name"] == "Hakuna Matata - Hans Zimmer [The Lion King]"
