@@ -30,6 +30,21 @@ To get this workflow running, you'll need the following parts:
 * **📂 Date-based Organization**: Archives downloads into `/audio/YYYY-MM/DD/` and `/covers/YYYY-MM/DD/` directories.
 * **🔔 Discord Notifications**: Sends a webhook notification once the processing is complete. ✅
 * **🛡️ NAS Friendly**: Supports `PUID` and `PGID` for seamless SMB permission management.
+* **🖥️ Web UI**: Built-in song management dashboard for browsing, searching, and deleting downloads.
+
+## 🖥️ Web UI — Song Manager
+
+Access the built-in management dashboard at `http://<YOUR_NAS_IP>:8000/`.
+
+<img src="docs/ui-demo.webp" alt="Song Manager Demo" width="800">
+
+**Capabilities:**
+
+- **Unified View**: Browse all downloaded songs and covers across every date in one place
+- **Duplicate Detection**: Songs with the same title on different dates are flagged with a "重复" badge
+- **Search & Filter**: Instantly filter songs by title with live stats updates
+- **Multi-Select**: Click cards or use the "Select All" checkbox, then bulk-delete with a confirmation dialog
+- **Cover Art**: Displays the auto-cropped square cover art for each song
 
 ## 🚀 Getting Started
 
