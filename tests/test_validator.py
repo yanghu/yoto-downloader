@@ -1,7 +1,8 @@
 """Unit tests for the URL validation / extraction helpers."""
 
 import pytest
-from validator import validate_url, extract_url_id
+from unittest.mock import patch
+from validator import validate_url, extract_url_id, is_duplicate, record_download, _seen
 
 
 # ---------------------------------------------------------------------------
@@ -66,3 +67,35 @@ class TestExtractUrlId:
     def test_strips_hostname(self):
         url_id = extract_url_id("https://www.youtube.com/watch?v=abc123")
         assert "youtube.com" not in url_id
+
+
+# ---------------------------------------------------------------------------
+# Duplicate detection
+# ---------------------------------------------------------------------------
+
+class TestDuplicateDetection:
+    """Tests for is_duplicate / record_download."""
+
+    def setup_method(self):
+        """Clear the seen-set before each test."""
+        _seen.clear()
+
+    def test_first_request_is_not_duplicate(self):
+        url = "https://www.youtube.com/watch?v=abc123"
+        assert is_duplicate(url) is False
+
+    def test_same_url_same_day_is_duplicate(self):
+        url = "https://www.youtube.com/watch?v=abc123"
+        record_download(url)
+        assert is_duplicate(url) is True
+
+    def test_different_urls_same_day_not_duplicate(self):
+        record_download("https://www.youtube.com/watch?v=abc123")
+        assert is_duplicate("https://www.youtube.com/watch?v=xyz789") is False
+
+    def test_same_url_different_day_not_duplicate(self):
+        url = "https://www.youtube.com/watch?v=abc123"
+        record_download(url)
+        with patch("validator._today", return_value="2099-12-31"):
+            assert is_duplicate(url) is False
+

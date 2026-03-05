@@ -1,6 +1,25 @@
 """URL validation helpers for the download endpoint."""
 
+from datetime import date
 from urllib.parse import urlparse, parse_qs
+
+# In-memory set of (date_str, url) pairs seen today.
+# Resets on container restart; stale entries from past days are harmless.
+_seen: set[tuple[str, str]] = set()
+
+
+def is_duplicate(url: str) -> bool:
+    """Return True if this URL was already accepted today."""
+    return (_today(), url) in _seen
+
+
+def record_download(url: str) -> None:
+    """Mark a URL as accepted for today."""
+    _seen.add((_today(), url))
+
+
+def _today() -> str:
+    return date.today().isoformat()
 
 
 def validate_url(url: str) -> None:

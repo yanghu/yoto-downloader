@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from downloader import process_download
-from validator import validate_url, extract_url_id
+from validator import validate_url, extract_url_id, is_duplicate, record_download
 
 app = FastAPI(title="Yoto Downloader API")
 
@@ -15,8 +15,17 @@ async def trigger_download(request: DownloadRequest, background_tasks: Backgroun
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    url_id = extract_url_id(request.url)
+
+    if is_duplicate(request.url):
+        return {
+            "status": "duplicate",
+            "id": url_id,
+            "message": f"今日已下载过 [{url_id}]，跳过重复请求"
+        }
+
     try:
-        url_id = extract_url_id(request.url)
+        record_download(request.url)
 
         # 直接由后台任务处理所有下载和元数据
         background_tasks.add_task(process_download, request.url)
