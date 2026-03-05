@@ -36,8 +36,6 @@
 
 访问内置管理面板：`http://<你的 NAS 局域网 IP>:8000/`
 
-![歌曲管理面板](docs/ui-song-manager.png)
-
 <img src="docs/ui-demo.webp" alt="歌曲管理面板演示" width="800">
 
 **功能一览：**
