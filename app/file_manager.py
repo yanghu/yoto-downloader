@@ -3,12 +3,31 @@
 import os
 from config import AUDIO_BASE_DIR, COVER_BASE_DIR
 
+# Separator used in filenames: "Title - Artist.m4a"
+_SEPARATOR = " - "
+
+
+def _parse_filename(filename_no_ext: str) -> tuple[str, str]:
+    """Parse a 'Title - Artist' filename into (title, artist).
+
+    If no separator is found, returns (filename, "").
+    Uses the *last* occurrence of ' - ' so titles containing ' - ' are preserved.
+    """
+    idx = filename_no_ext.rfind(_SEPARATOR)
+    if idx == -1:
+        return filename_no_ext, ""
+    title = filename_no_ext[:idx]
+    artist = filename_no_ext[idx + len(_SEPARATOR):]
+    return title, artist
+
 
 def list_all_songs() -> list[dict]:
     """Walk the audio directory and build a list of song records.
 
     Each record contains:
-      - title: str          (filename without extension)
+      - title: str          (song title parsed from filename)
+      - artist: str         (artist parsed from filename, may be empty)
+      - display_name: str   (full filename without extension, used for cover matching)
       - date: str           (YYYY-MM-DD derived from the YYYY-MM/DD path)
       - audio_path: str     (path relative to /downloads)
       - cover_path: str|None (relative path to best available cover, or None)
@@ -27,7 +46,8 @@ def list_all_songs() -> list[dict]:
                 continue
 
             full_path = os.path.join(root, fname)
-            title = os.path.splitext(fname)[0]
+            display_name = os.path.splitext(fname)[0]
+            title, artist = _parse_filename(display_name)
 
             # Extract date from directory structure: .../audio/YYYY-MM/DD/file
             rel_from_audio = os.path.relpath(root, AUDIO_BASE_DIR)
@@ -41,13 +61,15 @@ def list_all_songs() -> list[dict]:
             audio_rel = os.path.relpath(full_path, os.path.dirname(AUDIO_BASE_DIR))
             audio_rel = audio_rel.replace("\\", "/")
 
-            # Find matching cover
-            cover_rel = _find_cover(title, rel_from_audio)
+            # Find matching cover (uses full display_name for file matching)
+            cover_rel = _find_cover(display_name, rel_from_audio)
 
             size_bytes = os.path.getsize(full_path)
 
             songs.append({
                 "title": title,
+                "artist": artist,
+                "display_name": display_name,
                 "date": date_str,
                 "audio_path": audio_rel,
                 "cover_path": cover_rel,
@@ -56,7 +78,7 @@ def list_all_songs() -> list[dict]:
 
             title_dates.setdefault(title, set()).add(date_str)
 
-    # Mark duplicates
+    # Mark duplicates (based on title only, ignoring artist)
     for song in songs:
         song["is_duplicate"] = len(title_dates.get(song["title"], set())) > 1
 

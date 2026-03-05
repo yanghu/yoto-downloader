@@ -352,6 +352,15 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .card-artist {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             margin-bottom: 8px;
         }
 
@@ -712,7 +721,7 @@
                 loading.style.display = 'none';
                 const query = searchInput.value.toLowerCase().trim();
                 const filtered = query
-                    ? allSongs.filter(s => s.title.toLowerCase().includes(query))
+                    ? allSongs.filter(s => s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query))
                     : allSongs;
 
                 if (filtered.length === 0) {
@@ -747,6 +756,7 @@
                 ${coverImg}
                 <div class="card-body">
                     <div class="card-title" title="${esc(song.title)}">${esc(song.title)}</div>
+                    ${song.artist ? `<div class="card-artist">${esc(song.artist)}</div>` : ''}
                     <div class="card-meta">
                         <span class="card-date">📅 ${song.date}</span>
                         <span class="card-size">${formatSize(song.size_bytes)}</span>

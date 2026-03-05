@@ -3,7 +3,7 @@
 import os
 import pytest
 from unittest.mock import patch
-from file_manager import list_all_songs, delete_files, _find_cover
+from file_manager import list_all_songs, delete_files, _find_cover, _parse_filename
 
 
 @pytest.fixture
@@ -68,6 +68,8 @@ def test_list_songs_returns_correct_records(tmp_downloads):
     # Check fields exist on every record
     for s in songs:
         assert "title" in s
+        assert "artist" in s
+        assert "display_name" in s
         assert "date" in s
         assert "audio_path" in s
         assert "cover_path" is not None or s["title"] == "SongA"
@@ -142,3 +144,42 @@ def test_delete_preserves_other_files(tmp_downloads):
 
     assert not (tmp_downloads / "audio" / "2026-03" / "05" / "SongB.m4a").exists()
     assert extra.exists(), "SongC should not be deleted"
+
+
+# ─────────────────── _parse_filename tests ───────────────────
+
+def test_parse_filename_with_artist():
+    """Standard 'Title - Artist' format."""
+    title, artist = _parse_filename("Hakuna Matata - Hans Zimmer")
+    assert title == "Hakuna Matata"
+    assert artist == "Hans Zimmer"
+
+
+def test_parse_filename_without_artist():
+    """Legacy filename without separator → artist is empty."""
+    title, artist = _parse_filename("Hakuna Matata")
+    assert title == "Hakuna Matata"
+    assert artist == ""
+
+
+def test_parse_filename_title_contains_dash():
+    """Title with ' - ' in it → uses last occurrence."""
+    title, artist = _parse_filename("Part 1 - The Beginning - Artist Name")
+    assert title == "Part 1 - The Beginning"
+    assert artist == "Artist Name"
+
+
+def test_list_songs_with_artist_filename(tmp_path):
+    """Files named 'Title - Artist.m4a' have artist parsed correctly."""
+    audio_base = tmp_path / "audio" / "2026-03" / "04"
+    audio_base.mkdir(parents=True)
+    (audio_base / "Hakuna Matata - Hans Zimmer.m4a").write_bytes(b"\x00" * 1000)
+
+    with patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")), \
+         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")):
+        songs = list_all_songs()
+
+    assert len(songs) == 1
+    assert songs[0]["title"] == "Hakuna Matata"
+    assert songs[0]["artist"] == "Hans Zimmer"
+    assert songs[0]["display_name"] == "Hakuna Matata - Hans Zimmer"

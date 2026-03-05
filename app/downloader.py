@@ -21,13 +21,16 @@ def process_download(query: str):
     
     download_target = query if query.startswith("http") else f"ytsearch1:{query}"
     
+    # 文件名格式：Title - Artist（歌名在前，歌手在后）
+    # yt-dlp 的 %(artist)s 对 YouTube Music 有效；普通 YouTube 视频可能为空
+    name_template = '%(title)s - %(artist)s'
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
         'outtmpl': {
-            # 将下载路径指向刚刚算出来的今天专属目录
-            'default': f'{current_audio_dir}/%(title)s.%(ext)s',
-            'thumbnail': f'{current_cover_dir}/%(title)s.%(ext)s',
+            'default': f'{current_audio_dir}/{name_template}.%(ext)s',
+            'thumbnail': f'{current_cover_dir}/{name_template}.%(ext)s',
         },
         'postprocessors': [
             {
