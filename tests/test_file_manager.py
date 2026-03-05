@@ -31,7 +31,7 @@ def tmp_downloads(tmp_path):
     (day2_audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
     (day2_cover / "SongB_square.jpg").write_bytes(b"\x00" * 400)
 
-    # Create a duplicate of SongA on a different day
+    # Create a duplicate of SongA on a different day (same full filename = same display_name)
     (day2_audio / "SongA.m4a").write_bytes(b"\x00" * 1500)
 
     return tmp_path

@@ -76,11 +76,11 @@ def list_all_songs() -> list[dict]:
                 "size_bytes": size_bytes,
             })
 
-            title_dates.setdefault(title, set()).add(date_str)
+            title_dates.setdefault(display_name, set()).add(date_str)
 
-    # Mark duplicates (based on title only, ignoring artist)
+    # Mark duplicates (based on full display_name = title + artist)
     for song in songs:
-        song["is_duplicate"] = len(title_dates.get(song["title"], set())) > 1
+        song["is_duplicate"] = len(title_dates.get(song["display_name"], set())) > 1
 
     # Sort newest first, then alphabetical
     songs.sort(key=lambda s: (s["date"], s["title"]), reverse=True)

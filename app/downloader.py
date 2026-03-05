@@ -60,8 +60,10 @@ def process_download(query: str):
             crop_thumbnail_to_square(base_filename, current_cover_dir)
             
             title = info_dict.get('title', query)
-            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {title}")
-            send_discord_notification(title, success=True, detail=f"已归档至 {month_folder}/{day_folder}")
+            artist = info_dict.get('artist', '')
+            display_name = f"{title} - {artist}" if artist else title
+            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {display_name}")
+            send_discord_notification(display_name, success=True, detail=f"已归档至 {month_folder}/{day_folder}")
             
     except Exception as e:
         print(f"❌ 下载失败 {query}: {e}")
