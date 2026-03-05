@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoto 下载管理器</title>
+    <meta name="description" content="Manage downloaded Yoto songs and covers">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --bg-glass: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --text-primary: #e8e8ed;
+            --text-secondary: #8e8e93;
+            --text-tertiary: #636366;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.25);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --duplicate-badge: rgba(245, 158, 11, 0.15);
+            --duplicate-text: #f59e0b;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ══════════════════════════ HEADER ══════════════════════════ */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e8e8ed, #a5b4fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            color: var(--text-tertiary);
+        }
+
+        .stat-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .stat-dot.warning {
+            background: var(--warning);
+        }
+
+        /* ══════════════════════════ TOOLBAR ══════════════════════════ */
+        .toolbar {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            pointer-events: none;
+            font-size: 14px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .select-all-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            user-select: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+        }
+
+        .select-all-wrapper:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all var(--transition);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 12px var(--danger-glow);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px var(--danger-glow);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        /* ══════════════════════════ CHECKBOX ══════════════════════════ */
+        .checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-hover);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all var(--transition);
+            background: transparent;
+            flex-shrink: 0;
+        }
+
+        .checkbox:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .checkbox:hover {
+            border-color: var(--accent);
+        }
+
+        /* ══════════════════════════ SONG GRID ══════════════════════════ */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px 40px;
+        }
+
+        .song-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .song-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all var(--transition);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .song-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .song-card.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent), 0 4px 16px var(--accent-glow);
+        }
+
+        .card-cover {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--bg-secondary);
+            display: block;
+        }
+
+        .card-cover-placeholder {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, var(--bg-secondary), #1a1a2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        .card-body {
+            padding: 14px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 8px;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .card-date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-size {
+            color: var(--text-tertiary);
+        }
+
+        .badge-duplicate {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--duplicate-badge);
+            color: var(--duplicate-text);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .card-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+        }
+
+        /* ══════════════════════════ MODAL ══════════════════════════ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 250ms ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 250ms ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--danger);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .modal-file-list {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+
+        .modal-file-item {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .modal-file-item:last-child {
+            border-bottom: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ══════════════════════════ EMPTY / LOADING ══════════════════════════ */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            opacity: 0.3;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h2 {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 80px auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ══════════════════════════ TOAST ══════════════════════════ */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            animation: slideIn 300ms ease, fadeOut 300ms ease 2700ms;
+            animation-fill-mode: forwards;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+
+        /* ══════════════════════════ RESPONSIVE ══════════════════════════ */
+        @media (max-width: 640px) {
+            .header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stats {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-wrapper {
+                max-width: 100%;
+            }
+
+            .song-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 10px;
+            }
+
+            .card-body {
+                padding: 10px;
+            }
+
+            .card-title {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">🎵</div>
+                <h1>Yoto 下载管理器</h1>
+            </div>
+            <div class="stats" id="stats">
+                <div class="stat-item">
+                    <span class="stat-dot"></span>
+                    <span class="stat-value" id="stat-total">–</span>
+                    <span class="stat-label">首歌曲</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-dot"></span>
+                    <span class="stat-value" id="stat-size">–</span>
+                    <span class="stat-label">总大小</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-dot warning"></span>
+                    <span class="stat-value" id="stat-dupes">–</span>
+                    <span class="stat-label">重复</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════ TOOLBAR ═══════════════════════ -->
+    <div class="toolbar" id="toolbar">
+        <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="search-input" placeholder="搜索歌曲..." autocomplete="off">
+        </div>
+        <label class="select-all-wrapper">
+            <input type="checkbox" class="checkbox" id="select-all">
+            <span>全选</span>
+        </label>
+        <button class="btn btn-danger" id="delete-btn" disabled>
+            <span>🗑️</span>
+            <span>删除所选</span>
+        </button>
+        <span class="selected-count" id="selected-count"></span>
+    </div>
+
+    <!-- ═══════════════════════ CONTENT ═══════════════════════ -->
+    <main class="container">
+        <div id="loading">
+            <div class="spinner"></div>
+        </div>
+        <div class="song-grid" id="song-grid" style="display:none;"></div>
+        <div class="empty-state" id="empty-state" style="display:none;">
+            <div class="empty-icon">📭</div>
+            <h2>暂无下载</h2>
+            <p>下载的歌曲会显示在这里</p>
+        </div>
+    </main>
+
+    <!-- ═══════════════════════ DELETE MODAL ═══════════════════════ -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h2>⚠️ 确认删除</h2>
+            <p id="modal-message">将删除以下文件（包括对应的封面图）：</p>
+            <div class="modal-file-list" id="modal-file-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="modal-cancel">取消</button>
+                <button class="btn btn-danger" id="modal-confirm">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ TOASTS ═══════════════════════ -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        (function () {
+            // ─────────────────── State ───────────────────
+            let allSongs = [];
+            let selectedPaths = new Set();
+
+            // ─────────────────── DOM refs ───────────────────
+            const grid = document.getElementById('song-grid');
+            const loading = document.getElementById('loading');
+            const emptyState = document.getElementById('empty-state');
+            const searchInput = document.getElementById('search-input');
+            const selectAll = document.getElementById('select-all');
+            const deleteBtn = document.getElementById('delete-btn');
+            const selectedCountEl = document.getElementById('selected-count');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalFileList = document.getElementById('modal-file-list');
+            const modalCancel = document.getElementById('modal-cancel');
+            const modalConfirm = document.getElementById('modal-confirm');
+            const toastContainer = document.getElementById('toast-container');
+
+            // ─────────────────── Init ───────────────────
+            fetchSongs();
+
+            // ─────────────────── Data fetch ───────────────────
+            async function fetchSongs() {
+                loading.style.display = '';
+                grid.style.display = 'none';
+                emptyState.style.display = 'none';
+
+                try {
+                    const resp = await fetch('/api/songs');
+                    allSongs = await resp.json();
+                    selectedPaths.clear();
+                    render();
+                } catch (e) {
+                    showToast('加载失败: ' + e.message, 'error');
+                    loading.style.display = 'none';
+                }
+            }
+
+            // ─────────────────── Render ───────────────────
+            function render() {
+                loading.style.display = 'none';
+                const query = searchInput.value.toLowerCase().trim();
+                const filtered = query
+                    ? allSongs.filter(s => s.title.toLowerCase().includes(query))
+                    : allSongs;
+
+                if (filtered.length === 0) {
+                    grid.style.display = 'none';
+                    emptyState.style.display = '';
+                } else {
+                    grid.style.display = '';
+                    emptyState.style.display = 'none';
+                }
+
+                grid.innerHTML = filtered.map(song => cardHTML(song)).join('');
+                updateStats(filtered);
+                updateSelection();
+            }
+
+            function cardHTML(song) {
+                const checked = selectedPaths.has(song.audio_path) ? 'checked' : '';
+                const selectedClass = selectedPaths.has(song.audio_path) ? ' selected' : '';
+                const coverImg = song.cover_path
+                    ? `<img class="card-cover" src="/downloads/${encodeURI(song.cover_path)}" alt="${esc(song.title)}" loading="lazy">`
+                    : `<div class="card-cover-placeholder">🎵</div>`;
+                const dupeBadge = song.is_duplicate
+                    ? `<span class="badge-duplicate">重复</span>`
+                    : '';
+
+                return `
+            <div class="song-card${selectedClass}" data-path="${esc(song.audio_path)}">
+                <input type="checkbox" class="checkbox card-checkbox" ${checked}
+                       data-path="${esc(song.audio_path)}"
+                       onclick="event.stopPropagation()">
+                ${dupeBadge}
+                ${coverImg}
+                <div class="card-body">
+                    <div class="card-title" title="${esc(song.title)}">${esc(song.title)}</div>
+                    <div class="card-meta">
+                        <span class="card-date">📅 ${song.date}</span>
+                        <span class="card-size">${formatSize(song.size_bytes)}</span>
+                    </div>
+                </div>
+            </div>`;
+            }
+
+            // ─────────────────── Stats ───────────────────
+            function updateStats(songs) {
+                const list = songs || allSongs;
+                document.getElementById('stat-total').textContent = list.length;
+                document.getElementById('stat-size').textContent = formatSize(
+                    list.reduce((sum, s) => sum + s.size_bytes, 0)
+                );
+                document.getElementById('stat-dupes').textContent =
+                    list.filter(s => s.is_duplicate).length;
+            }
+
+            // ─────────────────── Selection ───────────────────
+            function updateSelection() {
+                const count = selectedPaths.size;
+                deleteBtn.disabled = count === 0;
+                selectedCountEl.textContent = count > 0 ? `已选 ${count} 首` : '';
+
+                // Sync select-all checkbox
+                const visible = grid.querySelectorAll('.card-checkbox');
+                const allChecked = visible.length > 0 && [...visible].every(cb => cb.checked);
+                selectAll.checked = allChecked;
+            }
+
+            // Delegate click on grid
+            grid.addEventListener('click', (e) => {
+                const cb = e.target.closest('.card-checkbox');
+                if (cb) {
+                    toggleSelect(cb.dataset.path, cb.checked);
+                    return;
+                }
+                const card = e.target.closest('.song-card');
+                if (card) {
+                    const checkbox = card.querySelector('.card-checkbox');
+                    checkbox.checked = !checkbox.checked;
+                    toggleSelect(checkbox.dataset.path, checkbox.checked);
+                }
+            });
+
+            function toggleSelect(path, on) {
+                if (on) selectedPaths.add(path);
+                else selectedPaths.delete(path);
+
+                const card = grid.querySelector(`.song-card[data-path="${CSS.escape(path)}"]`);
+                if (card) card.classList.toggle('selected', on);
+                updateSelection();
+            }
+
+            selectAll.addEventListener('change', () => {
+                const checked = selectAll.checked;
+                grid.querySelectorAll('.card-checkbox').forEach(cb => {
+                    cb.checked = checked;
+                    if (checked) selectedPaths.add(cb.dataset.path);
+                    else selectedPaths.delete(cb.dataset.path);
+
+                    const card = cb.closest('.song-card');
+                    if (card) card.classList.toggle('selected', checked);
+                });
+                updateSelection();
+            });
+
+            searchInput.addEventListener('input', () => {
+                render();
+            });
+
+            // ─────────────────── Delete flow ───────────────────
+            deleteBtn.addEventListener('click', () => {
+                if (selectedPaths.size === 0) return;
+                const songs = allSongs.filter(s => selectedPaths.has(s.audio_path));
+                modalFileList.innerHTML = songs
+                    .map(s => `<div class="modal-file-item">🎵 ${esc(s.title)} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`)
+                    .join('');
+                document.getElementById('modal-message').textContent =
+                    `将删除 ${songs.length} 个文件（包括对应的封面图）：`;
+                modalOverlay.classList.add('active');
+            });
+
+            modalCancel.addEventListener('click', () => {
+                modalOverlay.classList.remove('active');
+            });
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+            });
+
+            modalConfirm.addEventListener('click', async () => {
+                modalOverlay.classList.remove('active');
+                const paths = [...selectedPaths];
+                deleteBtn.disabled = true;
+                deleteBtn.textContent = '删除中...';
+
+                try {
+                    const resp = await fetch('/api/songs', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paths })
+                    });
+                    const data = await resp.json();
+                    const deleted = data.results.filter(r => r.deleted).length;
+                    const failed = data.results.filter(r => !r.deleted).length;
+
+                    if (deleted > 0) showToast(`成功删除 ${deleted} 个文件`, 'success');
+                    if (failed > 0) showToast(`${failed} 个文件删除失败`, 'error');
+
+                    fetchSongs();
+                } catch (e) {
+                    showToast('删除请求失败: ' + e.message, 'error');
+                } finally {
+                    deleteBtn.innerHTML = '<span>🗑️</span><span>删除所选</span>';
+                }
+            });
+
+            // ─────────────────── Helpers ───────────────────
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+                return (bytes / 1073741824).toFixed(2) + ' GB';
+            }
+
+            function esc(str) {
+                const d = document.createElement('div');
+                d.textContent = str;
+                return d.innerHTML;
+            }
+
+            function showToast(msg, type) {
+                const el = document.createElement('div');
+                el.className = `toast ${type}`;
+                el.textContent = msg;
+                toastContainer.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+        })();
+    </script>
+
+</body>
+
+</html>
