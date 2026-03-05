@@ -10,4 +10,5 @@ services:
       - ${DOWNLOAD_PATH}:/downloads
     environment:
       - TZ=America/Los_Angeles
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
     user: "${PUID}:${PGID}"

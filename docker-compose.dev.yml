@@ -10,5 +10,6 @@ services:
       - ./downloads:/downloads
     environment:
       - TZ=America/Los_Angeles
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
     # 覆盖默认启动命令：先清空目录，然后再启动 FastAPI
     command: sh -c "rm -rf /downloads/* && uvicorn main:app --host 0.0.0.0 --port 8000"

@@ -3,6 +3,7 @@ from datetime import datetime
 import yt_dlp
 from image import crop_thumbnail_to_square
 from config import AUDIO_BASE_DIR, COVER_BASE_DIR
+from notifier import send_discord_notification
 
 def process_download(query: str):
     """后台下载任务，支持直接 URL 或 文本搜索"""
@@ -54,7 +55,11 @@ def process_download(query: str):
             
             # 把今天的动态封面目录传给图片处理器
             crop_thumbnail_to_square(base_filename, current_cover_dir)
-            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {info_dict.get('title')}")
+            
+            title = info_dict.get('title', query)
+            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {title}")
+            send_discord_notification(title, success=True, detail=f"已归档至 {month_folder}/{day_folder}")
             
     except Exception as e:
         print(f"❌ 下载失败 {query}: {e}")
+        send_discord_notification(query, success=False, detail=str(e))

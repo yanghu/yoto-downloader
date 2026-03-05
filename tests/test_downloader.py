@@ -56,12 +56,15 @@ def test_successful_download_logs_success(capsys):
     """Happy path: mock yt-dlp extracts info + downloads → success message printed."""
     _setup_ydl_mock(title="My Great Song")
     
-    with patch('downloader.crop_thumbnail_to_square'):
+    with patch('downloader.crop_thumbnail_to_square'), \
+         patch('downloader.send_discord_notification') as mock_notify:
         process_download("https://www.youtube.com/watch?v=xyz")
     
     captured = capsys.readouterr()
     assert "✅" in captured.out
     assert "My Great Song" in captured.out
+    mock_notify.assert_called_once()
+    assert mock_notify.call_args[1]['success'] is True
 
 
 def test_download_failure_is_caught(capsys):
@@ -70,11 +73,14 @@ def test_download_failure_is_caught(capsys):
     mock_ydl.extract_info.side_effect = Exception("Network error")
     
     # Should not raise
-    process_download("https://www.youtube.com/watch?v=fail")
+    with patch('downloader.send_discord_notification') as mock_notify:
+        process_download("https://www.youtube.com/watch?v=fail")
     
     captured = capsys.readouterr()
     assert "❌" in captured.out
     assert "Network error" in captured.out
+    mock_notify.assert_called_once()
+    assert mock_notify.call_args[1]['success'] is False
 
 
 def test_output_paths_use_todays_date():
