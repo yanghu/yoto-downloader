@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 _seen: set[tuple[str, str]] = set()
 
 # Accepted YouTube hostnames (www. prefix is stripped before comparison)
-_ALLOWED_HOSTS = {"youtube.com", "youtu.be", "m.youtube.com"}
+_ALLOWED_HOSTS = {"youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"}
 
 
 def is_duplicate(url: str) -> bool:
