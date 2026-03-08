@@ -12,27 +12,22 @@ def tmp_downloads(tmp_path):
     audio_base = tmp_path / "audio"
     cover_base = tmp_path / "covers"
 
-    # Create a song on 2026-03/04
-    day1_audio = audio_base / "2026-03" / "04"
-    day1_cover = cover_base / "2026-03" / "04"
-    day1_audio.mkdir(parents=True)
-    day1_cover.mkdir(parents=True)
+    # Create songs in 2026-03
+    month1_audio = audio_base / "2026-03"
+    month1_cover = cover_base / "2026-03"
+    month1_audio.mkdir(parents=True)
+    month1_cover.mkdir(parents=True)
 
-    (day1_audio / "SongA.m4a").write_bytes(b"\x00" * 1000)
-    (day1_cover / "SongA.webp").write_bytes(b"\x00" * 200)
-    (day1_cover / "SongA_square.jpg").write_bytes(b"\x00" * 300)
+    (month1_audio / "SongA.m4a").write_bytes(b"\x00" * 1000)
+    (month1_cover / "SongA.webp").write_bytes(b"\x00" * 200)
+    (month1_cover / "SongA_square.jpg").write_bytes(b"\x00" * 300)
+    (month1_audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
+    (month1_cover / "SongB_square.jpg").write_bytes(b"\x00" * 400)
 
-    # Create another song on 2026-03/05
-    day2_audio = audio_base / "2026-03" / "05"
-    day2_cover = cover_base / "2026-03" / "05"
-    day2_audio.mkdir(parents=True)
-    day2_cover.mkdir(parents=True)
-
-    (day2_audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
-    (day2_cover / "SongB_square.jpg").write_bytes(b"\x00" * 400)
-
-    # Create a duplicate of SongA on a different day (same full filename = same display_name)
-    (day2_audio / "SongA.m4a").write_bytes(b"\x00" * 1500)
+    # Create a duplicate of SongA in a different month (same full filename = same display_name)
+    month2_audio = audio_base / "2026-04"
+    month2_audio.mkdir(parents=True)
+    (month2_audio / "SongA.m4a").write_bytes(b"\x00" * 1500)
 
     return tmp_path
 
@@ -99,7 +94,7 @@ def test_list_songs_prefers_square_cover(tmp_downloads):
     with p1, p2:
         songs = list_all_songs()
 
-    song_a_day1 = [s for s in songs if s["title"] == "SongA" and "04" in s["date"]][0]
+    song_a_day1 = [s for s in songs if s["title"] == "SongA" and s["date"] == "2026-03"][0]
     assert song_a_day1["cover_path"] is not None
     assert "_square" in song_a_day1["cover_path"]
 
@@ -108,24 +103,24 @@ def test_delete_files_removes_audio_and_covers(tmp_downloads):
     """Deleting should remove the audio file and all matching covers."""
     p1, p2 = _patch_dirs(tmp_downloads)
     with p1, p2:
-        results = delete_files(["audio/2026-03/04/SongA.m4a"])
+        results = delete_files(["audio/2026-03/SongA.m4a"])
 
     assert len(results) == 1
     assert results[0]["deleted"] is True
     assert results[0]["error"] is None
 
     # Audio file should be gone
-    assert not (tmp_downloads / "audio" / "2026-03" / "04" / "SongA.m4a").exists()
+    assert not (tmp_downloads / "audio" / "2026-03" / "SongA.m4a").exists()
     # Cover files should be gone
-    assert not (tmp_downloads / "covers" / "2026-03" / "04" / "SongA.webp").exists()
-    assert not (tmp_downloads / "covers" / "2026-03" / "04" / "SongA_square.jpg").exists()
+    assert not (tmp_downloads / "covers" / "2026-03" / "SongA.webp").exists()
+    assert not (tmp_downloads / "covers" / "2026-03" / "SongA_square.jpg").exists()
 
 
 def test_delete_files_nonexistent_path(tmp_downloads):
     """Deleting a nonexistent file should return an error, not raise."""
     p1, p2 = _patch_dirs(tmp_downloads)
     with p1, p2:
-        results = delete_files(["audio/2026-03/04/NonExistent.m4a"])
+        results = delete_files(["audio/2026-03/NonExistent.m4a"])
 
     assert len(results) == 1
     assert results[0]["deleted"] is False
@@ -136,14 +131,14 @@ def test_delete_preserves_other_files(tmp_downloads):
     """Deleting one song should not affect another in the same directory."""
     p1, p2 = _patch_dirs(tmp_downloads)
 
-    # Put an extra song on day 2 next to SongB
-    extra = tmp_downloads / "audio" / "2026-03" / "05" / "SongC.m4a"
+    # Put an extra song in same month next to SongB
+    extra = tmp_downloads / "audio" / "2026-03" / "SongC.m4a"
     extra.write_bytes(b"\x00" * 500)
 
     with p1, p2:
-        delete_files(["audio/2026-03/05/SongB.m4a"])
+        delete_files(["audio/2026-03/SongB.m4a"])
 
-    assert not (tmp_downloads / "audio" / "2026-03" / "05" / "SongB.m4a").exists()
+    assert not (tmp_downloads / "audio" / "2026-03" / "SongB.m4a").exists()
     assert extra.exists(), "SongC should not be deleted"
 
 
@@ -191,7 +186,7 @@ def test_parse_filename_album_no_artist():
 
 def test_list_songs_with_artist_filename(tmp_path):
     """Files named 'Title - Artist [Album].m4a' have all fields parsed correctly."""
-    audio_base = tmp_path / "audio" / "2026-03" / "04"
+    audio_base = tmp_path / "audio" / "2026-03"
     audio_base.mkdir(parents=True)
     (audio_base / "Hakuna Matata - Hans Zimmer [The Lion King].m4a").write_bytes(b"\x00" * 1000)
 

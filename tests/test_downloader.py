@@ -86,25 +86,23 @@ def test_download_failure_is_caught(capsys):
 
 
 def test_output_paths_use_todays_date():
-    """Verifies the outtmpl options are built with today's YYYY-MM/DD folder structure."""
+    """Verifies the outtmpl options are built with today's YYYY-MM folder structure."""
     _setup_ydl_mock()
-    
+
     now = datetime.now()
     expected_month = now.strftime("%Y-%m")
-    expected_day = now.strftime("%d")
-    
+
     with patch('downloader.crop_thumbnail_to_square'):
         process_download("https://www.youtube.com/watch?v=date_test")
-    
+
     # Inspect the opts passed to YoutubeDL constructor
     call_args = mock_yt_dlp.YoutubeDL.call_args
     opts = call_args[0][0]  # first positional arg
-    
+
     default_template = opts['outtmpl']['default']
     # Normalize separators for cross-platform (config.py uses / but os.path.join adds \ on Windows)
     normalized = default_template.replace('\\', '/')
     assert expected_month in normalized
-    assert f"/{expected_day}/" in normalized
 
 
 def test_outtmpl_includes_artist_and_album_placeholders():

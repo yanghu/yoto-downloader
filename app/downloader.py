@@ -11,11 +11,10 @@ def process_download(query: str):
     # 1. 动态获取当前本地日期
     now = datetime.now()
     month_folder = now.strftime("%Y-%m") # 例如：2026-03
-    day_folder = now.strftime("%d")      # 例如：03
-    
-    # 2. 动态拼装今天的专属存放路径
-    current_audio_dir = os.path.join(AUDIO_BASE_DIR, month_folder, day_folder)
-    current_cover_dir = os.path.join(COVER_BASE_DIR, month_folder, day_folder)
+
+    # 2. 动态拼装本月的专属存放路径
+    current_audio_dir = os.path.join(AUDIO_BASE_DIR, month_folder)
+    current_cover_dir = os.path.join(COVER_BASE_DIR, month_folder)
     
     # yt-dlp 非常智能，如果 current_audio_dir 这些多级目录不存在，它会自动创建
     
@@ -68,8 +67,8 @@ def process_download(query: str):
             if album:
                 parts[-1] += f" [{album}]"
             display_name = ' - '.join(parts)
-            print(f"✅ 成功下载并处理，已归档至 {month_folder}/{day_folder}: {display_name}")
-            send_discord_notification(display_name, success=True, detail=f"已归档至 {month_folder}/{day_folder}")
+            print(f"✅ 成功下载并处理，已归档至 {month_folder}: {display_name}")
+            send_discord_notification(display_name, success=True, detail=f"已归档至 {month_folder}")
             
     except Exception as e:
         print(f"❌ 下载失败 {query}: {e}")
