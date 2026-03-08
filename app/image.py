@@ -28,19 +28,20 @@ def _center_crop(img: Image.Image) -> Image.Image:
     return img.crop((left, top, left + size, top + size))
 
 
-def crop_thumbnail_to_square(base_filename: str, cover_dir: str) -> None:
-    """Locate the thumbnail for *base_filename* and save a square JPEG next to it.
+def crop_thumbnail_to_square(base_filename: str, src_dir: str, dst_dir: str) -> None:
+    """Locate the thumbnail for *base_filename* in *src_dir* and save a square JPEG to *dst_dir*.
 
-    The square file is written as ``<base_filename>_square.jpg``.
-    The original file is left in place.  Logs a warning when no thumbnail is
-    found and silently absorbs image-processing errors.
+    The square file is written as ``<dst_dir>/<base_filename>_square.jpg``.
+    The original file in *src_dir* is left in place.  Logs a warning when no
+    thumbnail is found and silently absorbs image-processing errors.
     """
-    src = _find_thumbnail(base_filename, cover_dir)
+    src = _find_thumbnail(base_filename, src_dir)
     if src is None:
         logger.warning("Thumbnail not found for: %s", base_filename)
         return
 
-    out_path = os.path.join(cover_dir, f"{base_filename}_square.jpg")
+    os.makedirs(dst_dir, exist_ok=True)
+    out_path = os.path.join(dst_dir, f"{base_filename}_square.jpg")
 
     try:
         with Image.open(src) as img:

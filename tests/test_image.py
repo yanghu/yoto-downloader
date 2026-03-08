@@ -66,10 +66,13 @@ class TestCenterCrop:
 
 def test_square_image_is_saved_as_jpeg(tmp_path):
     """A 100x100 PNG is saved as _square.jpg without cropping."""
-    _create_test_image(str(tmp_path / "thumb.png"), 100, 100)
-    crop_thumbnail_to_square("thumb", str(tmp_path))
+    src_dir = tmp_path / "originals"
+    dst_dir = tmp_path / "covers"
+    src_dir.mkdir()
+    _create_test_image(str(src_dir / "thumb.png"), 100, 100)
+    crop_thumbnail_to_square("thumb", str(src_dir), str(dst_dir))
 
-    out = tmp_path / "thumb_square.jpg"
+    out = dst_dir / "thumb_square.jpg"
     assert out.exists()
     with Image.open(str(out)) as img:
         assert img.size == (100, 100)
@@ -78,10 +81,13 @@ def test_square_image_is_saved_as_jpeg(tmp_path):
 
 def test_landscape_image_is_cropped_to_square(tmp_path):
     """A 200x100 landscape image → output is 100x100."""
-    _create_test_image(str(tmp_path / "wide.png"), 200, 100)
-    crop_thumbnail_to_square("wide", str(tmp_path))
+    src_dir = tmp_path / "originals"
+    dst_dir = tmp_path / "covers"
+    src_dir.mkdir()
+    _create_test_image(str(src_dir / "wide.png"), 200, 100)
+    crop_thumbnail_to_square("wide", str(src_dir), str(dst_dir))
 
-    out = tmp_path / "wide_square.jpg"
+    out = dst_dir / "wide_square.jpg"
     assert out.exists()
     with Image.open(str(out)) as img:
         assert img.size == (100, 100)
@@ -89,10 +95,13 @@ def test_landscape_image_is_cropped_to_square(tmp_path):
 
 def test_portrait_image_is_cropped_to_square(tmp_path):
     """A 100x200 portrait image → output is 100x100."""
-    _create_test_image(str(tmp_path / "tall.png"), 100, 200)
-    crop_thumbnail_to_square("tall", str(tmp_path))
+    src_dir = tmp_path / "originals"
+    dst_dir = tmp_path / "covers"
+    src_dir.mkdir()
+    _create_test_image(str(src_dir / "tall.png"), 100, 200)
+    crop_thumbnail_to_square("tall", str(src_dir), str(dst_dir))
 
-    out = tmp_path / "tall_square.jpg"
+    out = dst_dir / "tall_square.jpg"
     assert out.exists()
     with Image.open(str(out)) as img:
         assert img.size == (100, 100)
@@ -100,10 +109,13 @@ def test_portrait_image_is_cropped_to_square(tmp_path):
 
 def test_rgba_is_converted_to_rgb(tmp_path):
     """RGBA image is saved without alpha channel error."""
-    _create_test_image(str(tmp_path / "alpha.png"), 150, 100, mode="RGBA")
-    crop_thumbnail_to_square("alpha", str(tmp_path))
+    src_dir = tmp_path / "originals"
+    dst_dir = tmp_path / "covers"
+    src_dir.mkdir()
+    _create_test_image(str(src_dir / "alpha.png"), 150, 100, mode="RGBA")
+    crop_thumbnail_to_square("alpha", str(src_dir), str(dst_dir))
 
-    out = tmp_path / "alpha_square.jpg"
+    out = dst_dir / "alpha_square.jpg"
     assert out.exists()
     with Image.open(str(out)) as img:
         assert img.mode == "RGB"
@@ -111,15 +123,18 @@ def test_rgba_is_converted_to_rgb(tmp_path):
 
 def test_missing_thumbnail_does_not_raise(tmp_path):
     """No file present → function returns gracefully without raising."""
-    crop_thumbnail_to_square("nonexistent", str(tmp_path))
+    crop_thumbnail_to_square("nonexistent", str(tmp_path), str(tmp_path / "out"))
 
 
 def test_webp_thumbnail_is_found_and_cropped(tmp_path):
     """A .webp thumbnail is found via _find_thumbnail and cropped correctly."""
-    _create_test_image(str(tmp_path / "track.webp"), 300, 200)
-    crop_thumbnail_to_square("track", str(tmp_path))
+    src_dir = tmp_path / "originals"
+    dst_dir = tmp_path / "covers"
+    src_dir.mkdir()
+    _create_test_image(str(src_dir / "track.webp"), 300, 200)
+    crop_thumbnail_to_square("track", str(src_dir), str(dst_dir))
 
-    out = tmp_path / "track_square.jpg"
+    out = dst_dir / "track_square.jpg"
     assert out.exists()
     with Image.open(str(out)) as img:
         assert img.size == (200, 200)

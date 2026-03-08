@@ -14,15 +14,18 @@ def tmp_downloads(tmp_path):
     """Create a temporary downloads directory structure."""
     audio_base = tmp_path / "audio"
     cover_base = tmp_path / "covers"
+    originals_base = tmp_path / "covers" / "originals"
 
     # Create songs in 2026-03
     month1_audio = audio_base / "2026-03"
     month1_cover = cover_base / "2026-03"
+    month1_original = originals_base / "2026-03"
     month1_audio.mkdir(parents=True)
     month1_cover.mkdir(parents=True)
+    month1_original.mkdir(parents=True)
 
     (month1_audio / "SongA.m4a").write_bytes(b"\x00" * 1000)
-    (month1_cover / "SongA.webp").write_bytes(b"\x00" * 200)
+    (month1_original / "SongA.webp").write_bytes(b"\x00" * 200)
     (month1_cover / "SongA_square.jpg").write_bytes(b"\x00" * 300)
     (month1_audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
     (month1_cover / "SongB_square.jpg").write_bytes(b"\x00" * 400)
@@ -36,10 +39,11 @@ def tmp_downloads(tmp_path):
 
 
 def _patch_dirs(tmp_path):
-    """Return patches for AUDIO_BASE_DIR and COVER_BASE_DIR."""
+    """Return patches for AUDIO_BASE_DIR, COVER_BASE_DIR, and ORIGINAL_COVER_BASE_DIR."""
     return (
         patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")),
         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")),
+        patch("file_manager.ORIGINAL_COVER_BASE_DIR", str(tmp_path / "covers" / "originals")),
     )
 
 
@@ -48,15 +52,16 @@ def test_list_songs_empty_dir(tmp_path):
     empty_audio = tmp_path / "audio"
     empty_audio.mkdir()
     with patch("file_manager.AUDIO_BASE_DIR", str(empty_audio)), \
-         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")):
+         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")), \
+         patch("file_manager.ORIGINAL_COVER_BASE_DIR", str(tmp_path / "covers" / "originals")):
         songs = list_all_songs()
     assert songs == []
 
 
 def test_list_songs_returns_correct_records(tmp_downloads):
     """Listing should return all songs with correct fields."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         songs = list_all_songs()
 
     assert len(songs) == 3
@@ -78,8 +83,8 @@ def test_list_songs_returns_correct_records(tmp_downloads):
 
 def test_list_songs_detects_duplicates(tmp_downloads):
     """Same title on multiple days → both marked as duplicates."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         songs = list_all_songs()
 
     song_a_records = [s for s in songs if s["title"] == "SongA"]
@@ -93,8 +98,8 @@ def test_list_songs_detects_duplicates(tmp_downloads):
 
 def test_list_songs_prefers_square_cover(tmp_downloads):
     """Cover path should prefer _square.jpg variant."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         songs = list_all_songs()
 
     song_a_day1 = [s for s in songs if s["title"] == "SongA" and s["date"] == "2026-03"][0]
@@ -104,8 +109,8 @@ def test_list_songs_prefers_square_cover(tmp_downloads):
 
 def test_delete_files_removes_audio_and_covers(tmp_downloads):
     """Deleting should remove the audio file and all matching covers."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         results = delete_files(["audio/2026-03/SongA.m4a"])
 
     assert len(results) == 1
@@ -115,14 +120,14 @@ def test_delete_files_removes_audio_and_covers(tmp_downloads):
     # Audio file should be gone
     assert not (tmp_downloads / "audio" / "2026-03" / "SongA.m4a").exists()
     # Cover files should be gone
-    assert not (tmp_downloads / "covers" / "2026-03" / "SongA.webp").exists()
+    assert not (tmp_downloads / "covers" / "originals" / "2026-03" / "SongA.webp").exists()
     assert not (tmp_downloads / "covers" / "2026-03" / "SongA_square.jpg").exists()
 
 
 def test_delete_files_nonexistent_path(tmp_downloads):
     """Deleting a nonexistent file should return an error, not raise."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         results = delete_files(["audio/2026-03/NonExistent.m4a"])
 
     assert len(results) == 1
@@ -132,13 +137,13 @@ def test_delete_files_nonexistent_path(tmp_downloads):
 
 def test_delete_preserves_other_files(tmp_downloads):
     """Deleting one song should not affect another in the same directory."""
-    p1, p2 = _patch_dirs(tmp_downloads)
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
 
     # Put an extra song in same month next to SongB
     extra = tmp_downloads / "audio" / "2026-03" / "SongC.m4a"
     extra.write_bytes(b"\x00" * 500)
 
-    with p1, p2:
+    with p1, p2, p3:
         delete_files(["audio/2026-03/SongB.m4a"])
 
     assert not (tmp_downloads / "audio" / "2026-03" / "SongB.m4a").exists()
@@ -194,7 +199,8 @@ def test_list_songs_with_artist_filename(tmp_path):
     (audio_base / "Hakuna Matata - Hans Zimmer [The Lion King].m4a").write_bytes(b"\x00" * 1000)
 
     with patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")), \
-         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")):
+         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")), \
+         patch("file_manager.ORIGINAL_COVER_BASE_DIR", str(tmp_path / "covers" / "originals")):
         songs = list_all_songs()
 
     assert len(songs) == 1
@@ -207,12 +213,14 @@ def test_list_songs_with_artist_filename(tmp_path):
 # ─────────────────── archive_all tests ───────────────────
 
 def _patch_all_dirs(tmp_path):
-    """Return patches for all four directory constants."""
+    """Return patches for all directory constants."""
     return (
         patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")),
         patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")),
+        patch("file_manager.ORIGINAL_COVER_BASE_DIR", str(tmp_path / "covers" / "originals")),
         patch("file_manager.ARCHIVE_AUDIO_DIR", str(tmp_path / "archive" / "audio")),
         patch("file_manager.ARCHIVE_COVER_DIR", str(tmp_path / "archive" / "covers")),
+        patch("file_manager.ARCHIVE_ORIGINAL_COVER_DIR", str(tmp_path / "archive" / "covers" / "originals")),
     )
 
 
@@ -221,14 +229,16 @@ def tmp_archive_setup(tmp_path):
     """Create downloads + empty archive directories."""
     audio = tmp_path / "audio" / "2026-03"
     covers = tmp_path / "covers" / "2026-03"
+    originals = tmp_path / "covers" / "originals" / "2026-03"
     archive_audio = tmp_path / "archive" / "audio"
     archive_covers = tmp_path / "archive" / "covers"
-    for d in (audio, covers, archive_audio, archive_covers):
+    archive_originals = tmp_path / "archive" / "covers" / "originals"
+    for d in (audio, covers, originals, archive_audio, archive_covers, archive_originals):
         d.mkdir(parents=True)
 
     (audio / "SongA.m4a").write_bytes(b"\x00" * 1000)
     (covers / "SongA_square.jpg").write_bytes(b"\x00" * 200)
-    (covers / "SongA.webp").write_bytes(b"\x00" * 150)
+    (originals / "SongA.webp").write_bytes(b"\x00" * 150)
     (audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
 
     return tmp_path
@@ -236,8 +246,8 @@ def tmp_archive_setup(tmp_path):
 
 def test_archive_all_moves_audio_and_covers(tmp_archive_setup):
     """Archive should move audio and matching covers to archive directory."""
-    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
-    with p1, p2, p3, p4:
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
         result = archive_all()
 
     assert result["archived"] == 2
@@ -247,7 +257,7 @@ def test_archive_all_moves_audio_and_covers(tmp_archive_setup):
     assert (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").exists()
     assert (tmp_archive_setup / "archive" / "audio" / "SongB.m4a").exists()
     assert (tmp_archive_setup / "archive" / "covers" / "SongA_square.jpg").exists()
-    assert (tmp_archive_setup / "archive" / "covers" / "SongA.webp").exists()
+    assert (tmp_archive_setup / "archive" / "covers" / "originals" / "SongA.webp").exists()
 
     # Files should be gone from original
     assert not (tmp_archive_setup / "audio" / "2026-03" / "SongA.m4a").exists()
@@ -256,12 +266,13 @@ def test_archive_all_moves_audio_and_covers(tmp_archive_setup):
 
 def test_archive_all_cleans_empty_month_dirs(tmp_archive_setup):
     """Empty month directories should be removed after archive."""
-    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
-    with p1, p2, p3, p4:
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
         archive_all()
 
     assert not (tmp_archive_setup / "audio" / "2026-03").exists()
     assert not (tmp_archive_setup / "covers" / "2026-03").exists()
+    assert not (tmp_archive_setup / "covers" / "originals" / "2026-03").exists()
 
 
 def test_archive_all_handles_duplicate_names(tmp_archive_setup):
@@ -269,8 +280,8 @@ def test_archive_all_handles_duplicate_names(tmp_archive_setup):
     # Pre-populate archive with a SongA.m4a
     (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").write_bytes(b"\x00" * 500)
 
-    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
-    with p1, p2, p3, p4:
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
         result = archive_all()
 
     assert result["archived"] == 2
@@ -289,8 +300,8 @@ def test_archive_all_empty_dir(tmp_path):
     archive_audio.mkdir(parents=True)
     archive_covers.mkdir(parents=True)
 
-    p1, p2, p3, p4 = _patch_all_dirs(tmp_path)
-    with p1, p2, p3, p4:
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_path)
+    with p1, p2, p3, p4, p5, p6:
         result = archive_all()
 
     assert result["archived"] == 0
@@ -323,8 +334,8 @@ def test_cover_files_for_title_nonexistent_dir(tmp_path):
 
 def test_delete_files_rejects_path_traversal(tmp_downloads):
     """Paths that escape /downloads via .. are rejected."""
-    p1, p2 = _patch_dirs(tmp_downloads)
-    with p1, p2:
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
         results = delete_files(["audio/../../etc/passwd"])
 
     assert len(results) == 1
@@ -334,10 +345,10 @@ def test_delete_files_rejects_path_traversal(tmp_downloads):
 
 def test_delete_files_rejects_absolute_path(tmp_downloads):
     """Absolute paths that point outside /downloads are rejected."""
-    p1, p2 = _patch_dirs(tmp_downloads)
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
     # Use the tmp_path itself as an "outside" absolute path disguised as relative
     evil_path = "audio/../../../tmp/evil.m4a"
-    with p1, p2:
+    with p1, p2, p3:
         results = delete_files([evil_path])
 
     assert results[0]["deleted"] is False

@@ -2,7 +2,10 @@
 
 import os
 import shutil
-from config import AUDIO_BASE_DIR, COVER_BASE_DIR, ARCHIVE_AUDIO_DIR, ARCHIVE_COVER_DIR
+from config import (
+    AUDIO_BASE_DIR, COVER_BASE_DIR, ORIGINAL_COVER_BASE_DIR,
+    ARCHIVE_AUDIO_DIR, ARCHIVE_COVER_DIR, ARCHIVE_ORIGINAL_COVER_DIR,
+)
 
 # Separator used in filenames: "Title - Artist [Album].m4a"
 _SEPARATOR = " - "
@@ -105,25 +108,14 @@ def list_all_songs() -> list[dict]:
 def _find_cover(title: str, rel_from_audio: str) -> str | None:
     """Return the relative cover path (from /downloads) for a given title.
 
-    Prefers the _square.jpg variant, then falls back to any original cover.
+    Only returns the cropped square version — originals live under covers/originals/
+    and are intentionally excluded so the Yoto cover picker stays uncluttered.
     """
     cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
-    if not os.path.isdir(cover_dir):
-        return None
-
-    # Prefer square version
     square = os.path.join(cover_dir, f"{title}_square.jpg")
     if os.path.isfile(square):
         rel = os.path.relpath(square, os.path.dirname(COVER_BASE_DIR))
         return rel.replace("\\", "/")
-
-    # Fall back to original cover in any format
-    for ext in (".jpg", ".jpeg", ".png", ".webp"):
-        original = os.path.join(cover_dir, f"{title}{ext}")
-        if os.path.isfile(original):
-            rel = os.path.relpath(original, os.path.dirname(COVER_BASE_DIR))
-            return rel.replace("\\", "/")
-
     return None
 
 
@@ -160,11 +152,14 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
         title = os.path.splitext(os.path.basename(full_audio))[0]
         rel_from_audio = os.path.relpath(os.path.dirname(full_audio), AUDIO_BASE_DIR)
         cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
+        original_cover_dir = os.path.join(ORIGINAL_COVER_BASE_DIR, rel_from_audio)
 
         try:
             os.remove(full_audio)
             for cover_file in _cover_files_for_title(title, cover_dir):
                 os.remove(os.path.join(cover_dir, cover_file))
+            for cover_file in _cover_files_for_title(title, original_cover_dir):
+                os.remove(os.path.join(original_cover_dir, cover_file))
             result["deleted"] = True
         except Exception as e:
             result["error"] = str(e)
@@ -228,11 +223,18 @@ def archive_all() -> dict:
             dst_audio = _unique_dest(os.path.join(ARCHIVE_AUDIO_DIR, fname))
             shutil.move(src_audio, dst_audio)
 
-            # Move matching covers
+            # Move square covers
             cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
             for cover_file in _cover_files_for_title(display_name, cover_dir):
                 src_cover = os.path.join(cover_dir, cover_file)
                 dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_DIR, cover_file))
+                shutil.move(src_cover, dst_cover)
+
+            # Move original covers
+            original_cover_dir = os.path.join(ORIGINAL_COVER_BASE_DIR, rel_from_audio)
+            for cover_file in _cover_files_for_title(display_name, original_cover_dir):
+                src_cover = os.path.join(original_cover_dir, cover_file)
+                dst_cover = _unique_dest(os.path.join(ARCHIVE_ORIGINAL_COVER_DIR, cover_file))
                 shutil.move(src_cover, dst_cover)
 
             archived += 1
@@ -240,7 +242,7 @@ def archive_all() -> dict:
             errors.append(f"{fname}: {e}")
 
     # Clean up empty month directories
-    for base_dir in (AUDIO_BASE_DIR, COVER_BASE_DIR):
+    for base_dir in (AUDIO_BASE_DIR, COVER_BASE_DIR, ORIGINAL_COVER_BASE_DIR):
         if not os.path.isdir(base_dir):
             continue
         for entry in os.listdir(base_dir):
