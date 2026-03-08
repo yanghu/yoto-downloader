@@ -270,6 +270,24 @@
             box-shadow: none;
         }
 
+        .btn-archive {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .btn-archive:hover:not(:disabled) {
+            background: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px var(--accent-glow);
+        }
+
+        .btn-archive:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
         .btn-secondary {
             background: var(--bg-glass);
             color: var(--text-secondary);
@@ -865,6 +883,10 @@
             <input type="checkbox" class="checkbox" id="select-all">
             <span>全选</span>
         </label>
+        <button class="btn btn-archive" id="archive-btn">
+            <span>📦</span>
+            <span>一键归档全部</span>
+        </button>
         <button class="btn btn-danger" id="delete-btn" disabled>
             <span>🗑️</span>
             <span>删除所选</span>
@@ -916,6 +938,19 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════ ARCHIVE MODAL ═══════════════════════ -->
+    <div class="modal-overlay" id="archive-modal-overlay">
+        <div class="modal">
+            <h2>📦 确认归档</h2>
+            <p id="archive-modal-message">将归档所有歌曲到 archive 目录：</p>
+            <div class="modal-file-list" id="archive-modal-file-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="archive-modal-cancel">取消</button>
+                <button class="btn btn-archive" id="archive-modal-confirm">确认归档</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════════════════════ TOASTS ═══════════════════════ -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -944,6 +979,11 @@
             const toastContainer = document.getElementById('toast-container');
             const btnList = document.getElementById('btn-list');
             const btnCard = document.getElementById('btn-card');
+            const archiveBtn = document.getElementById('archive-btn');
+            const archiveModalOverlay = document.getElementById('archive-modal-overlay');
+            const archiveModalFileList = document.getElementById('archive-modal-file-list');
+            const archiveModalCancel = document.getElementById('archive-modal-cancel');
+            const archiveModalConfirm = document.getElementById('archive-modal-confirm');
 
             // ─────────────────── Layout Toggle ───────────────────
             function setLayout(mode) {
@@ -1191,6 +1231,47 @@
                     showToast('删除请求失败: ' + e.message, 'error');
                 } finally {
                     deleteBtn.innerHTML = '<span>🗑️</span><span>删除所选</span>';
+                }
+            });
+
+            // ─────────────────── Archive flow ───────────────────
+            archiveBtn.addEventListener('click', () => {
+                if (allSongs.length === 0) {
+                    showToast('没有可归档的歌曲', 'error');
+                    return;
+                }
+                archiveModalFileList.innerHTML = allSongs
+                    .map(s => {
+                        const label = s.artist ? `${esc(s.title)} — ${esc(s.artist)}` : esc(s.title);
+                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`;
+                    })
+                    .join('');
+                document.getElementById('archive-modal-message').textContent =
+                    `将归档全部 ${allSongs.length} 首歌曲到 archive 目录（包括封面图）：`;
+                archiveModalOverlay.classList.add('active');
+            });
+
+            archiveModalCancel.addEventListener('click', () => { archiveModalOverlay.classList.remove('active'); });
+            archiveModalOverlay.addEventListener('click', (e) => { if (e.target === archiveModalOverlay) archiveModalOverlay.classList.remove('active'); });
+
+            archiveModalConfirm.addEventListener('click', async () => {
+                archiveModalOverlay.classList.remove('active');
+                archiveBtn.disabled = true;
+                archiveBtn.textContent = '归档中...';
+
+                try {
+                    const resp = await fetch('/api/songs/archive', { method: 'POST' });
+                    const data = await resp.json();
+
+                    if (data.archived > 0) showToast(`成功归档 ${data.archived} 首歌曲`, 'success');
+                    if (data.errors && data.errors.length > 0) showToast(`${data.errors.length} 个文件归档失败`, 'error');
+
+                    fetchSongs();
+                } catch (e) {
+                    showToast('归档请求失败: ' + e.message, 'error');
+                } finally {
+                    archiveBtn.innerHTML = '<span>📦</span><span>一键归档全部</span>';
+                    archiveBtn.disabled = false;
                 }
             });
 

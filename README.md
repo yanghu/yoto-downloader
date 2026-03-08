@@ -29,7 +29,8 @@ To get this workflow running, you'll need the following parts:
 * **🎧 Optimized Audio Extraction**: Extracts the best available audio stream (saved as `.m4a`) without unnecessary re-encoding.
 * **🖼️ Auto Square Crop**: Automatically detects the thumbnail and uses `Pillow` to crop it to a perfect 1:1 ratio (`_square.jpg`).
 * **🤖 JS Challenge Support**: Includes `Deno` to handle YouTube's latest signature and JavaScript challenges.
-* **📂 Date-based Organization**: Archives downloads into `/audio/YYYY-MM/DD/` and `/covers/YYYY-MM/DD/` directories.
+* **📂 Date-based Organization**: Archives downloads into `/audio/YYYY-MM/` and `/covers/YYYY-MM/` directories.
+* **📦 One-click Archive**: Move all processed songs to a flat `/archive/` directory after adding them to Yoto cards.
 * **🔔 Discord Notifications**: Sends a webhook notification once the processing is complete. ✅
 * **🛡️ NAS Friendly**: Supports `PUID` and `PGID` for seamless SMB permission management.
 * **🖥️ Web UI**: Built-in song management dashboard for browsing, searching, and deleting downloads.
@@ -87,12 +88,14 @@ docker-compose up -d
 /downloads
   ├── audio/
   │   └── 2026-03/
-  │       └── 04/
-  │           └── The Wheels on the Bus.m4a
-  └── covers/
-      └── 2026-03/
-          └── 04/
-              ├── The Wheels on the Bus.webp         # Original
-              └── The Wheels on the Bus_square.jpg   # Ready for Yoto!
-
+  │       └── The Wheels on the Bus.m4a
+  ├── covers/
+  │   └── 2026-03/
+  │       ├── The Wheels on the Bus.webp         # Original
+  │       └── The Wheels on the Bus_square.jpg   # Ready for Yoto!
+  └── archive/                                   # After one-click archive
+      ├── audio/
+      │   └── The Wheels on the Bus.m4a
+      └── covers/
+          └── The Wheels on the Bus_square.jpg
 ```

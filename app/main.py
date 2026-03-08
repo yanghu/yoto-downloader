@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import os
 from downloader import process_download
 from validator import validate_url, extract_url_id, is_duplicate, record_download
-from file_manager import list_all_songs, delete_files
+from file_manager import list_all_songs, delete_files, archive_all
 from config import BASE_DOWNLOAD_DIR
 
 app = FastAPI(title="Yoto Downloader API")
@@ -41,6 +41,12 @@ async def delete_songs(request: DeleteRequest):
         raise HTTPException(status_code=400, detail="No paths provided")
     results = delete_files(request.paths)
     return {"results": results}
+
+
+@app.post("/api/songs/archive")
+async def archive_songs():
+    result = archive_all()
+    return result
 
 
 @app.post("/download")

@@ -27,7 +27,8 @@
 * **🎧 优化的音频提取**：使用 `yt-dlp` 提取最佳音频流并保存为 `.m4a` 格式，拒绝二次转码带来的无谓损耗。
 * **🖼️ 自动正方形裁剪**：调用 `Pillow` 库，自动将视频原始封面居中裁剪为 1:1 的正方形 (`_square.jpg`)，以完美符合 Yoto 播放列表的图标规范。
 * **🤖 突破反爬虫限制**：Docker 镜像内嵌 `Deno` 运行环境，完美解析 YouTube 最新的 JS 混淆与 Signature 验证。
-* **📂 按日期归档**：下载的文件自动按当天日期分类存入 `/audio/YYYY-MM/DD/` 和 `/covers/YYYY-MM/DD/` 目录中。
+* **📂 按月归档**：下载的文件自动按月份分类存入 `/audio/YYYY-MM/` 和 `/covers/YYYY-MM/` 目录中。
+* **📦 一键归档**：加到 Yoto 卡片后，一键将所有歌曲移入扁平的 `/archive/` 目录，保持月目录干净。
 * **🔔 Discord 通知**：任务处理完成后，通过 Webhook 发送包含状态信息的通知。✅
 * **🛡️ 完美解决 NAS 权限**：支持通过 `PUID` 和 `PGID` 环境变量运行，确保生成的音频和图片文件拥有正确的所属权，SMB 管理毫无障碍。
 * **🖥️ 可视化管理面板**：内置歌曲管理界面，支持浏览、搜索和批量删除已下载的歌曲。
@@ -44,6 +45,7 @@
 - **重复检测**：同名歌曲出现在不同日期时，会自动标注 "重复" 标签
 - **搜索过滤**：按标题即时搜索，统计信息实时更新
 - **批量管理**：点击卡片或使用 "全选" 进行多选，一键批量删除并弹出确认对话框
+- **一键归档**：歌曲加到 Yoto 卡片后，点击「一键归档全部」移入 archive 目录
 - **封面预览**：每首歌曲均展示自动裁剪后的正方形封面
 
 ## 🚀 部署指南
@@ -85,12 +87,14 @@ docker-compose up -d
 /downloads
   ├── audio/
   │   └── 2026-03/
-  │       └── 04/
-  │           └── The Wheels on the Bus.m4a
-  └── covers/
-      └── 2026-03/
-          └── 04/
-              ├── The Wheels on the Bus.webp         # 原始缩略图
-              └── The Wheels on the Bus_square.jpg   # 裁剪后的正方形封面 (随时可传至 Yoto)
-
+  │       └── The Wheels on the Bus.m4a
+  ├── covers/
+  │   └── 2026-03/
+  │       ├── The Wheels on the Bus.webp         # 原始缩略图
+  │       └── The Wheels on the Bus_square.jpg   # 裁剪后的正方形封面 (随时可传至 Yoto)
+  └── archive/                                   # 一键归档后
+      ├── audio/
+      │   └── The Wheels on the Bus.m4a
+      └── covers/
+          └── The Wheels on the Bus_square.jpg
 ```
