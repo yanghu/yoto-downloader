@@ -3,7 +3,7 @@
 import os
 import pytest
 from unittest.mock import patch
-from file_manager import list_all_songs, delete_files, _find_cover, _parse_filename
+from file_manager import list_all_songs, delete_files, _find_cover, _parse_filename, archive_all
 
 
 @pytest.fixture
@@ -199,3 +199,96 @@ def test_list_songs_with_artist_filename(tmp_path):
     assert songs[0]["artist"] == "Hans Zimmer"
     assert songs[0]["album"] == "The Lion King"
     assert songs[0]["display_name"] == "Hakuna Matata - Hans Zimmer [The Lion King]"
+
+
+# ─────────────────── archive_all tests ───────────────────
+
+def _patch_all_dirs(tmp_path):
+    """Return patches for all four directory constants."""
+    return (
+        patch("file_manager.AUDIO_BASE_DIR", str(tmp_path / "audio")),
+        patch("file_manager.COVER_BASE_DIR", str(tmp_path / "covers")),
+        patch("file_manager.ARCHIVE_AUDIO_DIR", str(tmp_path / "archive" / "audio")),
+        patch("file_manager.ARCHIVE_COVER_DIR", str(tmp_path / "archive" / "covers")),
+    )
+
+
+@pytest.fixture
+def tmp_archive_setup(tmp_path):
+    """Create downloads + empty archive directories."""
+    audio = tmp_path / "audio" / "2026-03"
+    covers = tmp_path / "covers" / "2026-03"
+    archive_audio = tmp_path / "archive" / "audio"
+    archive_covers = tmp_path / "archive" / "covers"
+    for d in (audio, covers, archive_audio, archive_covers):
+        d.mkdir(parents=True)
+
+    (audio / "SongA.m4a").write_bytes(b"\x00" * 1000)
+    (covers / "SongA_square.jpg").write_bytes(b"\x00" * 200)
+    (covers / "SongA.webp").write_bytes(b"\x00" * 150)
+    (audio / "SongB.m4a").write_bytes(b"\x00" * 2000)
+
+    return tmp_path
+
+
+def test_archive_all_moves_audio_and_covers(tmp_archive_setup):
+    """Archive should move audio and matching covers to archive directory."""
+    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4:
+        result = archive_all()
+
+    assert result["archived"] == 2
+    assert result["errors"] == []
+
+    # Files should exist in archive
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").exists()
+    assert (tmp_archive_setup / "archive" / "audio" / "SongB.m4a").exists()
+    assert (tmp_archive_setup / "archive" / "covers" / "SongA_square.jpg").exists()
+    assert (tmp_archive_setup / "archive" / "covers" / "SongA.webp").exists()
+
+    # Files should be gone from original
+    assert not (tmp_archive_setup / "audio" / "2026-03" / "SongA.m4a").exists()
+    assert not (tmp_archive_setup / "audio" / "2026-03" / "SongB.m4a").exists()
+
+
+def test_archive_all_cleans_empty_month_dirs(tmp_archive_setup):
+    """Empty month directories should be removed after archive."""
+    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4:
+        archive_all()
+
+    assert not (tmp_archive_setup / "audio" / "2026-03").exists()
+    assert not (tmp_archive_setup / "covers" / "2026-03").exists()
+
+
+def test_archive_all_handles_duplicate_names(tmp_archive_setup):
+    """When a file with the same name already exists in archive, append suffix."""
+    # Pre-populate archive with a SongA.m4a
+    (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").write_bytes(b"\x00" * 500)
+
+    p1, p2, p3, p4 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4:
+        result = archive_all()
+
+    assert result["archived"] == 2
+    # Original archive file still there
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").exists()
+    # New one got a suffix
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA_1.m4a").exists()
+
+
+def test_archive_all_empty_dir(tmp_path):
+    """Archive with no songs returns 0."""
+    audio = tmp_path / "audio"
+    audio.mkdir()
+    archive_audio = tmp_path / "archive" / "audio"
+    archive_covers = tmp_path / "archive" / "covers"
+    archive_audio.mkdir(parents=True)
+    archive_covers.mkdir(parents=True)
+
+    p1, p2, p3, p4 = _patch_all_dirs(tmp_path)
+    with p1, p2, p3, p4:
+        result = archive_all()
+
+    assert result["archived"] == 0
+    assert result["errors"] == []

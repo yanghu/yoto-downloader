@@ -1,7 +1,8 @@
 """File-system helpers for listing and deleting downloaded songs."""
 
 import os
-from config import AUDIO_BASE_DIR, COVER_BASE_DIR
+import shutil
+from config import AUDIO_BASE_DIR, COVER_BASE_DIR, ARCHIVE_AUDIO_DIR, ARCHIVE_COVER_DIR
 
 # Separator used in filenames: "Title - Artist [Album].m4a"
 _SEPARATOR = " - "
@@ -174,3 +175,68 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
         results.append(result)
 
     return results
+
+
+def _unique_dest(dest_path: str) -> str:
+    """Return dest_path if it doesn't exist, otherwise append _1, _2, etc."""
+    if not os.path.exists(dest_path):
+        return dest_path
+    base, ext = os.path.splitext(dest_path)
+    n = 1
+    while os.path.exists(f"{base}_{n}{ext}"):
+        n += 1
+    return f"{base}_{n}{ext}"
+
+
+def archive_all() -> dict:
+    """Move all songs (audio + covers) from date directories to the flat archive.
+
+    Returns {"archived": int, "errors": [str]}.
+    """
+    archived = 0
+    errors = []
+
+    if not os.path.isdir(AUDIO_BASE_DIR):
+        return {"archived": 0, "errors": []}
+
+    # Collect files first to avoid mutating dirs during walk
+    audio_files = []
+    for root, _dirs, files in os.walk(AUDIO_BASE_DIR):
+        for fname in files:
+            if fname.endswith(".m4a"):
+                audio_files.append((root, fname))
+
+    for root, fname in audio_files:
+        display_name = os.path.splitext(fname)[0]
+        rel_from_audio = os.path.relpath(root, AUDIO_BASE_DIR)
+
+        try:
+            # Move audio
+            src_audio = os.path.join(root, fname)
+            dst_audio = _unique_dest(os.path.join(ARCHIVE_AUDIO_DIR, fname))
+            shutil.move(src_audio, dst_audio)
+
+            # Move matching covers
+            cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
+            if os.path.isdir(cover_dir):
+                for cover_file in os.listdir(cover_dir):
+                    cover_name = os.path.splitext(cover_file)[0]
+                    if cover_name == display_name or cover_name == f"{display_name}_square":
+                        src_cover = os.path.join(cover_dir, cover_file)
+                        dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_DIR, cover_file))
+                        shutil.move(src_cover, dst_cover)
+
+            archived += 1
+        except Exception as e:
+            errors.append(f"{fname}: {e}")
+
+    # Clean up empty month directories
+    for base_dir in (AUDIO_BASE_DIR, COVER_BASE_DIR):
+        if not os.path.isdir(base_dir):
+            continue
+        for entry in os.listdir(base_dir):
+            month_dir = os.path.join(base_dir, entry)
+            if os.path.isdir(month_dir) and not os.listdir(month_dir):
+                os.rmdir(month_dir)
+
+    return {"archived": archived, "errors": errors}
