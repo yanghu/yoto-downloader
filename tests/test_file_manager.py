@@ -3,7 +3,10 @@
 import os
 import pytest
 from unittest.mock import patch
-from file_manager import list_all_songs, delete_files, _find_cover, _parse_filename, archive_all
+from file_manager import (
+    list_all_songs, delete_files, _find_cover, _parse_filename,
+    archive_all, _cover_files_for_title,
+)
 
 
 @pytest.fixture
@@ -292,3 +295,50 @@ def test_archive_all_empty_dir(tmp_path):
 
     assert result["archived"] == 0
     assert result["errors"] == []
+
+
+# ─────────────────── _cover_files_for_title tests ───────────────────
+
+def test_cover_files_for_title_returns_original_and_square(tmp_path):
+    """Both the original and _square variants are returned."""
+    (tmp_path / "Track.webp").write_bytes(b"\x00")
+    (tmp_path / "Track_square.jpg").write_bytes(b"\x00")
+    (tmp_path / "Other.webp").write_bytes(b"\x00")  # different title, should be excluded
+
+    result = _cover_files_for_title("Track", str(tmp_path))
+    assert set(result) == {"Track.webp", "Track_square.jpg"}
+
+
+def test_cover_files_for_title_empty_dir(tmp_path):
+    """Empty directory returns an empty list."""
+    assert _cover_files_for_title("Track", str(tmp_path)) == []
+
+
+def test_cover_files_for_title_nonexistent_dir(tmp_path):
+    """Non-existent directory returns an empty list without raising."""
+    assert _cover_files_for_title("Track", str(tmp_path / "missing")) == []
+
+
+# ─────────────────── path traversal guard tests ───────────────────
+
+def test_delete_files_rejects_path_traversal(tmp_downloads):
+    """Paths that escape /downloads via .. are rejected."""
+    p1, p2 = _patch_dirs(tmp_downloads)
+    with p1, p2:
+        results = delete_files(["audio/../../etc/passwd"])
+
+    assert len(results) == 1
+    assert results[0]["deleted"] is False
+    assert results[0]["error"] == "Invalid path"
+
+
+def test_delete_files_rejects_absolute_path(tmp_downloads):
+    """Absolute paths that point outside /downloads are rejected."""
+    p1, p2 = _patch_dirs(tmp_downloads)
+    # Use the tmp_path itself as an "outside" absolute path disguised as relative
+    evil_path = "audio/../../../tmp/evil.m4a"
+    with p1, p2:
+        results = delete_files([evil_path])
+
+    assert results[0]["deleted"] is False
+    assert results[0]["error"] in ("Invalid path", "File not found")

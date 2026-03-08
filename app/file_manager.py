@@ -136,12 +136,21 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
     Returns:
         List of {"path": str, "deleted": bool, "error": str|None} results.
     """
-    base = os.path.dirname(AUDIO_BASE_DIR)  # /downloads
+    base = os.path.realpath(os.path.dirname(AUDIO_BASE_DIR))  # /downloads
     results = []
 
     for rel_path in audio_paths:
-        full_audio = os.path.join(base, rel_path.replace("/", os.sep))
         result = {"path": rel_path, "deleted": False, "error": None}
+
+        full_audio = os.path.realpath(
+            os.path.join(base, rel_path.replace("/", os.sep))
+        )
+
+        # Guard against path traversal: resolved path must stay inside /downloads
+        if not full_audio.startswith(base + os.sep):
+            result["error"] = "Invalid path"
+            results.append(result)
+            continue
 
         if not os.path.isfile(full_audio):
             result["error"] = "File not found"
@@ -149,25 +158,13 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
             continue
 
         title = os.path.splitext(os.path.basename(full_audio))[0]
-
-        # Derive matching cover directory
-        # audio path: audio/YYYY-MM/file.m4a → covers/YYYY-MM/
-        rel_from_audio = os.path.relpath(
-            os.path.dirname(full_audio), AUDIO_BASE_DIR
-        )
+        rel_from_audio = os.path.relpath(os.path.dirname(full_audio), AUDIO_BASE_DIR)
         cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
 
         try:
             os.remove(full_audio)
-
-            # Remove all matching covers
-            if os.path.isdir(cover_dir):
-                for cover_file in os.listdir(cover_dir):
-                    cover_name = os.path.splitext(cover_file)[0]
-                    # Match "Title.ext" and "Title_square.jpg"
-                    if cover_name == title or cover_name == f"{title}_square":
-                        os.remove(os.path.join(cover_dir, cover_file))
-
+            for cover_file in _cover_files_for_title(title, cover_dir):
+                os.remove(os.path.join(cover_dir, cover_file))
             result["deleted"] = True
         except Exception as e:
             result["error"] = str(e)
@@ -175,6 +172,21 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
         results.append(result)
 
     return results
+
+
+def _cover_files_for_title(title: str, cover_dir: str) -> list[str]:
+    """Return all filenames in *cover_dir* that belong to *title*.
+
+    Matches both the original (``title.ext``) and square (``title_square.jpg``) variants.
+    """
+    if not os.path.isdir(cover_dir):
+        return []
+    matched = []
+    for fname in os.listdir(cover_dir):
+        stem = os.path.splitext(fname)[0]
+        if stem == title or stem == f"{title}_square":
+            matched.append(fname)
+    return matched
 
 
 def _unique_dest(dest_path: str) -> str:
@@ -218,13 +230,10 @@ def archive_all() -> dict:
 
             # Move matching covers
             cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
-            if os.path.isdir(cover_dir):
-                for cover_file in os.listdir(cover_dir):
-                    cover_name = os.path.splitext(cover_file)[0]
-                    if cover_name == display_name or cover_name == f"{display_name}_square":
-                        src_cover = os.path.join(cover_dir, cover_file)
-                        dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_DIR, cover_file))
-                        shutil.move(src_cover, dst_cover)
+            for cover_file in _cover_files_for_title(display_name, cover_dir):
+                src_cover = os.path.join(cover_dir, cover_file)
+                dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_DIR, cover_file))
+                shutil.move(src_cover, dst_cover)
 
             archived += 1
         except Exception as e:

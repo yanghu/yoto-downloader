@@ -1,12 +1,16 @@
+import os
+
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import os
+
+from config import BASE_DOWNLOAD_DIR, ensure_dirs
 from downloader import process_download
-from validator import validate_url, extract_url_id, is_duplicate, record_download
-from file_manager import list_all_songs, delete_files, archive_all
-from config import BASE_DOWNLOAD_DIR
+from file_manager import archive_all, delete_files, list_all_songs
+from validator import extract_url_id, is_duplicate, record_download, validate_url
+
+ensure_dirs()
 
 app = FastAPI(title="Yoto Downloader API")
 
@@ -67,8 +71,6 @@ async def trigger_download(request: DownloadRequest, background_tasks: Backgroun
 
     try:
         record_download(request.url)
-
-        # 直接由后台任务处理所有下载和元数据
         background_tasks.add_task(process_download, request.url)
 
         return {

@@ -16,6 +16,9 @@ class TestDomainValidation:
     def test_youtu_be_allowed(self):
         validate_url("https://youtu.be/abc123")
 
+    def test_mobile_youtube_allowed(self):
+        validate_url("https://m.youtube.com/watch?v=abc123")
+
     def test_non_youtube_rejected(self):
         with pytest.raises(ValueError, match="非法链接"):
             validate_url("https://example.com/video")
@@ -23,6 +26,11 @@ class TestDomainValidation:
     def test_empty_string_rejected(self):
         with pytest.raises(ValueError, match="非法链接"):
             validate_url("")
+
+    def test_crafted_url_with_youtube_in_path_rejected(self):
+        """A URL that contains 'youtube.com' in the path but not the host is rejected."""
+        with pytest.raises(ValueError, match="非法链接"):
+            validate_url("https://evil.com/youtube.com/watch?v=abc")
 
 
 # ---------------------------------------------------------------------------
