@@ -218,6 +218,12 @@
             border-left: 1px solid var(--border);
         }
 
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .select-all-wrapper {
             display: flex;
             align-items: center;
@@ -793,12 +799,37 @@
             }
 
             .toolbar {
-                flex-direction: column;
-                align-items: stretch;
+                flex-wrap: wrap;
+                padding: 12px 16px;
+                gap: 8px;
             }
 
             .search-wrapper {
-                max-width: 100%;
+                flex: 1;
+                min-width: 0;
+                max-width: none;
+            }
+
+            .toolbar .btn {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .toolbar .btn span:last-child {
+                display: none;
+            }
+
+            .toolbar .select-all-wrapper {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .toolbar .select-all-wrapper span {
+                display: none;
+            }
+
+            .toolbar-actions {
+                gap: 8px;
             }
 
             /* List view mobile */
@@ -879,19 +910,21 @@
             <button class="layout-btn active" id="btn-list" title="列表视图">☰</button>
             <button class="layout-btn" id="btn-card" title="卡片视图">▦</button>
         </div>
-        <label class="select-all-wrapper">
-            <input type="checkbox" class="checkbox" id="select-all">
-            <span>全选</span>
-        </label>
-        <button class="btn btn-archive" id="archive-btn">
-            <span>📦</span>
-            <span>一键归档全部</span>
-        </button>
-        <button class="btn btn-danger" id="delete-btn" disabled>
-            <span>🗑️</span>
-            <span>删除所选</span>
-        </button>
-        <span class="selected-count" id="selected-count"></span>
+        <div class="toolbar-actions">
+            <label class="select-all-wrapper">
+                <input type="checkbox" class="checkbox" id="select-all">
+                <span>全选</span>
+            </label>
+            <button class="btn btn-archive" id="archive-btn">
+                <span>📦</span>
+                <span>一键归档全部</span>
+            </button>
+            <button class="btn btn-danger" id="delete-btn" disabled>
+                <span>🗑️</span>
+                <span>删除所选</span>
+            </button>
+            <span class="selected-count" id="selected-count"></span>
+        </div>
     </div>
 
     <!-- ═══════════════════════ CONTENT ═══════════════════════ -->
