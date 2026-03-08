@@ -7,10 +7,6 @@ from urllib.parse import urlparse, parse_qs
 # Resets on container restart; stale entries from past days are harmless.
 _seen: set[tuple[str, str]] = set()
 
-# Accepted YouTube hostnames (www. prefix is stripped before comparison)
-_ALLOWED_HOSTS = {"youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"}
-
-
 def is_duplicate(url: str) -> bool:
     """Return True if this URL was already accepted today."""
     return (_today(), url) in _seen
@@ -31,10 +27,11 @@ def validate_url(url: str) -> None:
     Raises ValueError with a user-facing message if the URL is invalid.
     """
     parsed = urlparse(url)
-    host = parsed.netloc.lower()
-    if host.startswith("www."):
-        host = host[4:]
-    if host not in _ALLOWED_HOSTS:
+    host = parsed.hostname  # None if no scheme; strips port automatically
+    if not host:
+        raise ValueError("非法链接")
+    host = host.lower()
+    if host != "youtu.be" and host != "youtube.com" and not host.endswith(".youtube.com"):
         raise ValueError("非法链接")
 
     qs = parse_qs(parsed.query)
