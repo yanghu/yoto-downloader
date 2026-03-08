@@ -43,7 +43,7 @@ def list_all_songs() -> list[dict]:
       - artist: str         (artist parsed from filename, may be empty)
       - album: str          (album parsed from filename, may be empty)
       - display_name: str   (full filename without extension, used for cover matching)
-      - date: str           (YYYY-MM-DD derived from the YYYY-MM/DD path)
+      - date: str           (YYYY-MM derived from the YYYY-MM path)
       - audio_path: str     (path relative to /downloads)
       - cover_path: str|None (relative path to best available cover, or None)
       - size_bytes: int
@@ -64,13 +64,10 @@ def list_all_songs() -> list[dict]:
             display_name = os.path.splitext(fname)[0]
             title, artist, album = _parse_filename(display_name)
 
-            # Extract date from directory structure: .../audio/YYYY-MM/DD/file
+            # Extract date from directory structure: .../audio/YYYY-MM/file
             rel_from_audio = os.path.relpath(root, AUDIO_BASE_DIR)
-            parts = rel_from_audio.replace("\\", "/").split("/")
-            if len(parts) >= 2:
-                date_str = f"{parts[0]}-{parts[1]}"  # YYYY-MM-DD
-            else:
-                date_str = "unknown"
+            month_str = rel_from_audio.replace("\\", "/").split("/")[0]
+            date_str = month_str if month_str != "." else "unknown"
 
             # Build relative paths (from /downloads root)
             audio_rel = os.path.relpath(full_path, os.path.dirname(AUDIO_BASE_DIR))
@@ -133,7 +130,7 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
     """Delete audio files and their matching covers.
 
     Args:
-        audio_paths: list of paths relative to /downloads (e.g. "audio/2026-03/04/Song.m4a")
+        audio_paths: list of paths relative to /downloads (e.g. "audio/2026-03/Song.m4a")
 
     Returns:
         List of {"path": str, "deleted": bool, "error": str|None} results.
@@ -153,7 +150,7 @@ def delete_files(audio_paths: list[str]) -> list[dict]:
         title = os.path.splitext(os.path.basename(full_audio))[0]
 
         # Derive matching cover directory
-        # audio path: audio/YYYY-MM/DD/file.m4a → covers/YYYY-MM/DD/
+        # audio path: audio/YYYY-MM/file.m4a → covers/YYYY-MM/
         rel_from_audio = os.path.relpath(
             os.path.dirname(full_audio), AUDIO_BASE_DIR
         )
