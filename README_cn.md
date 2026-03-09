@@ -68,6 +68,81 @@ docker-compose up -d
 
 ```
 
+## 🛠️ 开发 & CI/CD
+
+### 本地开发
+
+所有常用任务通过 `make` 命令驱动。运行 `make help` 查看所有可用目标。
+
+```bash
+make dev        # 构建并启动本地开发环境，支持热重载 (http://localhost:8000)
+make dev-logs   # 实时查看开发环境日志
+make dev-down   # 停止并清理开发环境容器
+```
+
+开发环境使用 `docker-compose.dev.yml`，会将 `./app` 源代码目录挂载进容器，
+代码修改无需重新构建镜像即可生效。
+
+### 测试
+
+项目提供两层测试：
+
+| 命令 | 说明 | 前置条件 |
+|---|---|---|
+| `make test` | 单元测试，速度快，无需 Docker | Python + 安装 `requirements-test.txt` |
+| `make smoke` | 端到端冒烟测试，对接真实运行中的服务 | 需先执行 `make dev` |
+
+**单元测试环境配置：**
+
+```bash
+pip install -r requirements-test.txt
+make test
+```
+
+单元测试位于 `tests/` 目录，使用 `pytest` 运行。标记为 `smoke` 的测试默认跳过
+（详见 `pytest.ini`）。`conftest.py` 已 mock 了 `yt_dlp`、`requests` 以及
+`ensure_dirs`，测试无需 Docker 也不需要访问 `/downloads` 目录。
+
+**冒烟测试（端到端）：**
+
+```bash
+make dev     # 启动开发环境
+make smoke   # 发送真实 URL，验证接口响应
+```
+
+### 手动构建并推送 Docker 镜像
+
+```bash
+make build              # 在本地构建镜像
+make push               # 构建并推送到 Docker Hub (yang517/yoto-downloader:latest)
+make push TAG=v1.2.3    # 推送指定版本标签
+```
+
+### GitHub Actions CI/CD
+
+`.github/workflows/ci-cd.yml` 会在每次 push 和 PR 时自动触发。
+
+```
+每次 push / PR
+    └─ [test]  python -m pytest tests/ -m "not smoke" -v
+                    │
+                    │  仅在 push 到 main 且测试通过时触发
+                    ▼
+             [publish]  docker build + 推送到 Docker Hub
+                        → yang517/yoto-downloader:latest
+                        → yang517/yoto-downloader:<short-sha>
+```
+
+**需要在 GitHub 仓库中配置以下 Secrets**（Settings → Secrets and variables → Actions）：
+
+| Secret 名 | 填写内容 |
+|---|---|
+| `DOCKERHUB_USERNAME` | 你的 Docker Hub 用户名 |
+| `DOCKERHUB_TOKEN` | Docker Hub 访问令牌（Account Settings → Security → New Access Token） |
+
+配置完成后，每次合并到 `main` 分支都会自动运行测试并发布最新镜像。
+PR 只触发测试，不会推送镜像。
+
 ## 📱 iOS 快捷指令配置
 
 1. 设置快捷指令在 **共享表单中显示**（接收类型：*URL* 和 *文章/文本*）。

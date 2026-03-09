@@ -69,6 +69,81 @@ docker-compose up -d
 
 ```
 
+## 🛠️ Development & CI/CD
+
+### Local Development
+
+All common tasks are driven by `make`. Run `make help` to see available targets.
+
+```bash
+make dev        # Build and start the dev stack with hot-reload (http://localhost:8000)
+make dev-logs   # Tail logs from the dev stack
+make dev-down   # Stop and remove the dev stack
+```
+
+The dev stack uses `docker-compose.dev.yml`, which mounts the `./app` source directory
+into the container so code changes are picked up without a full rebuild.
+
+### Testing
+
+Two test layers are provided:
+
+| Command | What it does | Requires |
+|---|---|---|
+| `make test` | Unit tests — fast, no Docker needed | Python + `requirements-test.txt` |
+| `make smoke` | End-to-end smoke tests against a live server | `make dev` running first |
+
+**Setup for unit tests:**
+
+```bash
+pip install -r requirements-test.txt
+make test
+```
+
+Unit tests live in `tests/` and use `pytest`. Tests marked `smoke` are excluded by default
+(see `pytest.ini`). The `conftest.py` mocks `yt_dlp`, `requests`, and `ensure_dirs` so tests
+run without Docker or file system access to `/downloads`.
+
+**Smoke tests** (end-to-end):
+
+```bash
+make dev     # start the stack
+make smoke   # POST a real URL and verify the response
+```
+
+### Manual Docker Build & Push
+
+```bash
+make build              # Build the image locally
+make push               # Build + push to Docker Hub (yang517/yoto-downloader:latest)
+make push TAG=v1.2.3    # Push with a specific tag
+```
+
+### GitHub Actions CI/CD
+
+The workflow at `.github/workflows/ci-cd.yml` runs automatically on every push and pull request.
+
+```
+Every push / PR
+    └─ [test]  python -m pytest tests/ -m "not smoke" -v
+                    │
+                    │  only on push to main, and only if tests pass
+                    ▼
+             [publish]  docker build + push to Docker Hub
+                        → yang517/yoto-downloader:latest
+                        → yang517/yoto-downloader:<short-sha>
+```
+
+**Required GitHub repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (Account Settings → Security → New Access Token) |
+
+Once set, every merge to `main` will automatically run tests and publish a fresh image.
+PRs only run tests — no image is published.
+
 ## 📱 iOS Shortcut Setup
 
 1. Enable **Show in Share Sheet** (Accepts: *URLs* and *Articles/Text*).
