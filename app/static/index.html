@@ -919,6 +919,10 @@
                 <span>📦</span>
                 <span>一键归档全部</span>
             </button>
+            <button class="btn btn-archive" id="archive-selected-btn" disabled>
+                <span>📦</span>
+                <span>归档所选</span>
+            </button>
             <button class="btn btn-danger" id="delete-btn" disabled>
                 <span>🗑️</span>
                 <span>删除所选</span>
@@ -984,6 +988,19 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════ ARCHIVE SELECTED MODAL ═══════════════════════ -->
+    <div class="modal-overlay" id="archive-selected-modal-overlay">
+        <div class="modal">
+            <h2>📦 确认归档所选</h2>
+            <p id="archive-selected-modal-message">将归档所选歌曲到 archive 目录：</p>
+            <div class="modal-file-list" id="archive-selected-modal-file-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="archive-selected-modal-cancel">取消</button>
+                <button class="btn btn-archive" id="archive-selected-modal-confirm">确认归档</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════════════════════ TOASTS ═══════════════════════ -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -1017,6 +1034,11 @@
             const archiveModalFileList = document.getElementById('archive-modal-file-list');
             const archiveModalCancel = document.getElementById('archive-modal-cancel');
             const archiveModalConfirm = document.getElementById('archive-modal-confirm');
+            const archiveSelectedBtn = document.getElementById('archive-selected-btn');
+            const archiveSelectedModalOverlay = document.getElementById('archive-selected-modal-overlay');
+            const archiveSelectedModalFileList = document.getElementById('archive-selected-modal-file-list');
+            const archiveSelectedModalCancel = document.getElementById('archive-selected-modal-cancel');
+            const archiveSelectedModalConfirm = document.getElementById('archive-selected-modal-confirm');
 
             // ─────────────────── Layout Toggle ───────────────────
             function setLayout(mode) {
@@ -1111,7 +1133,7 @@
             </div>
             <span class="row-artist-col" title="${esc(song.artist)}">${esc(song.artist)}</span>
             <span class="row-album-col" title="${esc(song.album)}">${esc(song.album)}</span>
-            <span class="row-date">📅 ${song.date}</span>
+            <span class="row-date">📅 ${formatDate(song.downloaded_at)}</span>
             ${dupeBadge}
             <span class="row-size">${formatSize(song.size_bytes)}</span>
         </div>`;
@@ -1139,7 +1161,7 @@
                     <div class="card-title" title="${esc(song.title)}">${esc(song.title)}</div>
                     ${song.artist ? `<div class="card-artist">${esc(song.artist)}</div>` : ''}
                     <div class="card-meta">
-                        <span class="card-date">📅 ${song.date}</span>
+                        <span class="card-date">📅 ${formatDate(song.downloaded_at)}</span>
                         <span class="card-size">${formatSize(song.size_bytes)}</span>
                     </div>
                 </div>
@@ -1169,6 +1191,7 @@
             function updateSelection() {
                 const count = selectedPaths.size;
                 deleteBtn.disabled = count === 0;
+                archiveSelectedBtn.disabled = count === 0;
                 selectedCountEl.textContent = count > 0 ? `已选 ${count} 首` : '';
 
                 const container = getActiveContainer();
@@ -1229,7 +1252,7 @@
                 modalFileList.innerHTML = songs
                     .map(s => {
                         const label = s.artist ? `${esc(s.title)} — ${esc(s.artist)}` : esc(s.title);
-                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`;
+                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${formatDate(s.downloaded_at)})</span></div>`;
                     })
                     .join('');
                 document.getElementById('modal-message').textContent =
@@ -1276,7 +1299,7 @@
                 archiveModalFileList.innerHTML = allSongs
                     .map(s => {
                         const label = s.artist ? `${esc(s.title)} — ${esc(s.artist)}` : esc(s.title);
-                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${s.date})</span></div>`;
+                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${formatDate(s.downloaded_at)})</span></div>`;
                     })
                     .join('');
                 document.getElementById('archive-modal-message').textContent =
@@ -1305,6 +1328,50 @@
                 } finally {
                     archiveBtn.innerHTML = '<span>📦</span><span>一键归档全部</span>';
                     archiveBtn.disabled = false;
+                }
+            });
+
+            // ─────────────────── Archive Selected flow ───────────────────
+            archiveSelectedBtn.addEventListener('click', () => {
+                if (selectedPaths.size === 0) return;
+                const songs = allSongs.filter(s => selectedPaths.has(s.audio_path));
+                archiveSelectedModalFileList.innerHTML = songs
+                    .map(s => {
+                        const label = s.artist ? `${esc(s.title)} — ${esc(s.artist)}` : esc(s.title);
+                        return `<div class="modal-file-item">🎵 ${label} <span style="color:var(--text-tertiary)">(${formatDate(s.downloaded_at)})</span></div>`;
+                    })
+                    .join('');
+                document.getElementById('archive-selected-modal-message').textContent =
+                    `将归档 ${songs.length} 首歌曲到 archive 目录（包括封面图）：`;
+                archiveSelectedModalOverlay.classList.add('active');
+            });
+
+            archiveSelectedModalCancel.addEventListener('click', () => { archiveSelectedModalOverlay.classList.remove('active'); });
+            archiveSelectedModalOverlay.addEventListener('click', (e) => { if (e.target === archiveSelectedModalOverlay) archiveSelectedModalOverlay.classList.remove('active'); });
+
+            archiveSelectedModalConfirm.addEventListener('click', async () => {
+                archiveSelectedModalOverlay.classList.remove('active');
+                const paths = [...selectedPaths];
+                archiveSelectedBtn.disabled = true;
+                archiveSelectedBtn.textContent = '归档中...';
+
+                try {
+                    const resp = await fetch('/api/songs/archive-selected', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paths })
+                    });
+                    const data = await resp.json();
+
+                    if (data.archived > 0) showToast(`成功归档 ${data.archived} 首歌曲`, 'success');
+                    if (data.errors && data.errors.length > 0) showToast(`${data.errors.length} 个文件归档失败`, 'error');
+
+                    fetchSongs();
+                } catch (e) {
+                    showToast('归档请求失败: ' + e.message, 'error');
+                } finally {
+                    archiveSelectedBtn.innerHTML = '<span>📦</span><span>归档所选</span>';
+                    archiveSelectedBtn.disabled = selectedPaths.size === 0;
                 }
             });
 
@@ -1399,6 +1466,14 @@
             colObserver.observe(songList, { childList: true });
 
             // ─────────────────── Helpers ───────────────────
+            function formatDate(ts) {
+                const d = new Date(ts * 1000);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+
             function formatSize(bytes) {
                 if (bytes < 1024) return bytes + ' B';
                 if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';

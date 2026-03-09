@@ -85,6 +85,7 @@ def list_all_songs() -> list[dict]:
             cover_rel = _find_cover(display_name, rel_from_audio)
 
             size_bytes = os.path.getsize(full_path)
+            downloaded_at = os.path.getmtime(full_path)
 
             songs.append({
                 "title": title,
@@ -92,6 +93,7 @@ def list_all_songs() -> list[dict]:
                 "album": album,
                 "display_name": display_name,
                 "date": date_str,
+                "downloaded_at": downloaded_at,
                 "audio_path": audio_rel,
                 "cover_path": cover_rel,
                 "size_bytes": size_bytes,
@@ -103,8 +105,8 @@ def list_all_songs() -> list[dict]:
     for song in songs:
         song["is_duplicate"] = len(title_dates.get(song["display_name"], set())) > 1
 
-    # Sort newest first, then alphabetical
-    songs.sort(key=lambda s: (s["date"], s["title"]), reverse=True)
+    # Sort by actual download time, newest first
+    songs.sort(key=lambda s: s["downloaded_at"], reverse=True)
 
     return songs
 
@@ -207,6 +209,68 @@ def _unique_dest(dest_path: str) -> str:
     while os.path.exists(f"{base}_{n}{ext}"):
         n += 1
     return f"{base}_{n}{ext}"
+
+
+def archive_selected(audio_paths: list[str]) -> dict:
+    """Move specified songs (audio + covers) from date directories to the flat archive.
+
+    Args:
+        audio_paths: list of paths relative to /downloads (e.g. "audio/2026-03/Song.m4a")
+
+    Returns {"archived": int, "errors": [str]}.
+    """
+    base = os.path.realpath(os.path.dirname(AUDIO_BASE_DIR))  # /downloads
+    archived = 0
+    errors = []
+
+    for rel_path in audio_paths:
+        full_audio = os.path.realpath(
+            os.path.join(base, rel_path.replace("/", os.sep))
+        )
+
+        # Guard against path traversal
+        if not full_audio.startswith(base + os.sep):
+            errors.append(f"{rel_path}: Invalid path")
+            continue
+
+        if not os.path.isfile(full_audio):
+            errors.append(f"{rel_path}: File not found")
+            continue
+
+        fname = os.path.basename(full_audio)
+        display_name = os.path.splitext(fname)[0]
+        rel_from_audio = os.path.relpath(os.path.dirname(full_audio), AUDIO_BASE_DIR)
+
+        try:
+            dst_audio = _unique_dest(os.path.join(ARCHIVE_AUDIO_DIR, fname))
+            shutil.move(full_audio, dst_audio)
+
+            cover_dir = os.path.join(COVER_BASE_DIR, rel_from_audio)
+            for cover_file in _cover_files_for_title(display_name, cover_dir):
+                src_cover = os.path.join(cover_dir, cover_file)
+                dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_DIR, cover_file))
+                shutil.move(src_cover, dst_cover)
+
+            cropped_dir = os.path.join(COVER_CROPPED_BASE_DIR, rel_from_audio)
+            for cover_file in _cover_files_for_title(display_name, cropped_dir):
+                src_cover = os.path.join(cropped_dir, cover_file)
+                dst_cover = _unique_dest(os.path.join(ARCHIVE_COVER_CROPPED_DIR, cover_file))
+                shutil.move(src_cover, dst_cover)
+
+            archived += 1
+        except Exception as e:
+            errors.append(f"{fname}: {e}")
+
+    # Clean up empty month directories
+    for base_dir in (AUDIO_BASE_DIR, COVER_BASE_DIR, COVER_CROPPED_BASE_DIR):
+        if not os.path.isdir(base_dir):
+            continue
+        for entry in os.listdir(base_dir):
+            month_dir = os.path.join(base_dir, entry)
+            if os.path.isdir(month_dir) and not os.listdir(month_dir):
+                os.rmdir(month_dir)
+
+    return {"archived": archived, "errors": errors}
 
 
 def archive_all() -> dict:
