@@ -128,3 +128,32 @@ async def test_delete_songs_empty_list():
             json={"paths": []}
         )
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_archive_selected_endpoint():
+    """POST /api/songs/archive-selected with valid paths → 200 with archived count."""
+    mock_result = {"archived": 2, "errors": []}
+    with patch('main.archive_selected', return_value=mock_result):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/songs/archive-selected",
+                json={"paths": ["audio/2026-03/SongA.m4a", "audio/2026-03/SongB.m4a"]}
+            )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["archived"] == 2
+    assert data["errors"] == []
+
+
+@pytest.mark.asyncio
+async def test_archive_selected_endpoint_empty_list():
+    """POST /api/songs/archive-selected with empty paths → 400."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/api/songs/archive-selected",
+            json={"paths": []}
+        )
+    assert resp.status_code == 400

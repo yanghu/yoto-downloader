@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import patch
 from file_manager import (
     list_all_songs, delete_files, _find_cover, _parse_filename,
-    archive_all, _cover_files_for_title,
+    archive_all, archive_selected, _cover_files_for_title,
 )
 
 
@@ -79,6 +79,41 @@ def test_list_songs_returns_correct_records(tmp_downloads):
         assert "cover_path" is not None or s["title"] == "SongA"
         assert "size_bytes" in s
         assert "is_duplicate" in s
+
+
+def test_list_songs_includes_downloaded_at(tmp_downloads):
+    """Each song record should include a downloaded_at float timestamp."""
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
+        songs = list_all_songs()
+
+    for s in songs:
+        assert "downloaded_at" in s
+        assert isinstance(s["downloaded_at"], float)
+        assert s["downloaded_at"] > 0
+
+
+def test_list_songs_sorted_by_downloaded_at_descending(tmp_downloads):
+    """Songs should be ordered newest-first by file mtime, not just by date string."""
+    import time
+
+    # Set SongB's mtime to be older than SongA's
+    song_a = tmp_downloads / "audio" / "2026-03" / "SongA.m4a"
+    song_b = tmp_downloads / "audio" / "2026-03" / "SongB.m4a"
+    old_time = time.time() - 3600   # 1 hour ago
+    new_time = time.time() - 60     # 1 minute ago
+    os.utime(song_b, (old_time, old_time))
+    os.utime(song_a, (new_time, new_time))
+
+    p1, p2, p3 = _patch_dirs(tmp_downloads)
+    with p1, p2, p3:
+        songs = list_all_songs()
+
+    # SongA (newer) should appear before SongB (older), regardless of alphabetical order
+    titles_in_order = [s["title"] for s in songs]
+    song_a_idx = next(i for i, s in enumerate(songs) if s["title"] == "SongA" and s["date"] == "2026-03")
+    song_b_idx = next(i for i, s in enumerate(songs) if s["title"] == "SongB")
+    assert song_a_idx < song_b_idx, "Newer SongA should appear before older SongB"
 
 
 def test_list_songs_detects_duplicates(tmp_downloads):
@@ -310,6 +345,82 @@ def test_archive_all_empty_dir(tmp_path):
 
     assert result["archived"] == 0
     assert result["errors"] == []
+
+
+# ─────────────────── archive_selected tests ───────────────────
+
+def test_archive_selected_moves_only_specified_songs(tmp_archive_setup):
+    """Only the selected songs should be moved; others remain in place."""
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        result = archive_selected(["audio/2026-03/SongA.m4a"])
+
+    assert result["archived"] == 1
+    assert result["errors"] == []
+
+    # SongA moved to archive
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").exists()
+    assert not (tmp_archive_setup / "audio" / "2026-03" / "SongA.m4a").exists()
+
+    # SongB still in place
+    assert (tmp_archive_setup / "audio" / "2026-03" / "SongB.m4a").exists()
+    assert not (tmp_archive_setup / "archive" / "audio" / "SongB.m4a").exists()
+
+
+def test_archive_selected_moves_covers(tmp_archive_setup):
+    """Archiving a song should also move its matching cover files."""
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        archive_selected(["audio/2026-03/SongA.m4a"])
+
+    assert (tmp_archive_setup / "archive" / "covers" / "SongA.webp").exists()
+    assert (tmp_archive_setup / "archive" / "covers-cropped" / "SongA_square.jpg").exists()
+    assert not (tmp_archive_setup / "covers" / "2026-03" / "SongA.webp").exists()
+    assert not (tmp_archive_setup / "covers-cropped" / "2026-03" / "SongA_square.jpg").exists()
+
+
+def test_archive_selected_cleans_empty_month_dirs(tmp_archive_setup):
+    """After archiving all songs from a month, its empty directory is removed."""
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        archive_selected(["audio/2026-03/SongA.m4a", "audio/2026-03/SongB.m4a"])
+
+    assert not (tmp_archive_setup / "audio" / "2026-03").exists()
+
+
+def test_archive_selected_nonexistent_file_returns_error(tmp_archive_setup):
+    """Archiving a nonexistent file should record an error without raising."""
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        result = archive_selected(["audio/2026-03/NoSong.m4a"])
+
+    assert result["archived"] == 0
+    assert len(result["errors"]) == 1
+    assert "File not found" in result["errors"][0]
+
+
+def test_archive_selected_rejects_path_traversal(tmp_archive_setup):
+    """Paths escaping /downloads via .. are rejected with an error."""
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        result = archive_selected(["audio/../../etc/passwd"])
+
+    assert result["archived"] == 0
+    assert len(result["errors"]) == 1
+    assert "Invalid path" in result["errors"][0]
+
+
+def test_archive_selected_handles_duplicate_names(tmp_archive_setup):
+    """When archive already has a same-named file, the new one gets a suffix."""
+    (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").write_bytes(b"\x00" * 500)
+
+    p1, p2, p3, p4, p5, p6 = _patch_all_dirs(tmp_archive_setup)
+    with p1, p2, p3, p4, p5, p6:
+        result = archive_selected(["audio/2026-03/SongA.m4a"])
+
+    assert result["archived"] == 1
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA.m4a").exists()
+    assert (tmp_archive_setup / "archive" / "audio" / "SongA_1.m4a").exists()
 
 
 # ─────────────────── _cover_files_for_title tests ───────────────────
