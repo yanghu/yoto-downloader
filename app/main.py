@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from config import BASE_DOWNLOAD_DIR, ensure_dirs
 from downloader import process_download
-from file_manager import archive_all, delete_files, list_all_songs
+from file_manager import archive_all, archive_selected, delete_files, list_all_songs
 from validator import extract_url_id, is_duplicate, record_download, validate_url
 
 ensure_dirs()
@@ -26,6 +26,10 @@ class DownloadRequest(BaseModel):
 
 
 class DeleteRequest(BaseModel):
+    paths: list[str]
+
+
+class ArchiveSelectedRequest(BaseModel):
     paths: list[str]
 
 
@@ -50,6 +54,14 @@ async def delete_songs(request: DeleteRequest):
 @app.post("/api/songs/archive")
 async def archive_songs():
     result = archive_all()
+    return result
+
+
+@app.post("/api/songs/archive-selected")
+async def archive_songs_selected(request: ArchiveSelectedRequest):
+    if not request.paths:
+        raise HTTPException(status_code=400, detail="No paths provided")
+    result = archive_selected(request.paths)
     return result
 
 
