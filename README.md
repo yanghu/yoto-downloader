@@ -119,6 +119,30 @@ make push               # Build + push to Docker Hub (yang517/yoto-downloader:la
 make push TAG=v1.2.3    # Push with a specific tag
 ```
 
+### NAS Deployment
+
+After pushing an image, you can deploy it to your NAS in one command:
+
+```bash
+make deploy-nas
+```
+
+This will:
+1. Warn if `.env` is missing on the NAS (it's never overwritten)
+2. Copy `docker-compose.yml` to the NAS
+3. Pull the latest image and restart the service via SSH
+
+Configure the target in your `.env` (see `.env_example`):
+
+```env
+NAS_USER=admin
+NAS_IP=192.168.1.100
+NAS_DIR=/volume1/docker/yoto-downloader
+NAS_COMPOSE_CMD=sudo /usr/local/bin/docker-compose  # adjust for your system
+```
+
+Or override on the command line: `make deploy-nas NAS_IP=192.168.1.100`
+
 ### GitHub Actions CI/CD
 
 The workflow at `.github/workflows/ci-cd.yml` runs automatically on every push and pull request.

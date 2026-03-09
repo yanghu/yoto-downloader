@@ -118,6 +118,30 @@ make push               # 构建并推送到 Docker Hub (yang517/yoto-downloader
 make push TAG=v1.2.3    # 推送指定版本标签
 ```
 
+### 一键部署到 NAS
+
+镜像推送完成后，执行以下命令将最新版本部署到 NAS：
+
+```bash
+make deploy-nas
+```
+
+执行流程：
+1. 检查 NAS 上的 `.env` 是否存在（缺失时发出警告，但不会覆盖）
+2. 将 `docker-compose.yml` 同步到 NAS
+3. 通过 SSH 拉取最新镜像并重启服务
+
+在 `.env` 中配置目标环境（参考 `.env_example`）：
+
+```env
+NAS_USER=admin
+NAS_IP=192.168.1.100
+NAS_DIR=/volume1/docker/yoto-downloader
+NAS_COMPOSE_CMD=sudo /usr/local/bin/docker-compose  # 按实际情况调整
+```
+
+也可以直接在命令行覆盖参数：`make deploy-nas NAS_IP=192.168.1.100`
+
 ### GitHub Actions CI/CD
 
 `.github/workflows/ci-cd.yml` 会在每次 push 和 PR 时自动触发。
