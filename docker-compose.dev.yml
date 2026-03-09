@@ -1,14 +1,16 @@
 services:
   yoto-api:
     build: ./app
-    container_name: yoto_downloader
-    restart: unless-stopped
+    container_name: yoto_downloader_dev
     ports:
-      - "8000:8000" # 暴露给局域网的端口
+      - "8000:8000"
     volumes:
-      # 将 NAS 的实际存放路径映射到容器内的 /downloads
+      # Downloads stored locally under the repo so they survive restarts
       - ./downloads:/downloads
+      # Mount source code so uvicorn --reload picks up changes without rebuilding
+      - ./app:/app
     environment:
       - TZ=America/Los_Angeles
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    # --reload watches /app for changes and restarts automatically
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
