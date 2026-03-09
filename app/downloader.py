@@ -6,7 +6,7 @@ from datetime import datetime
 
 import yt_dlp
 
-from config import AUDIO_BASE_DIR, COVER_BASE_DIR
+from config import AUDIO_BASE_DIR, COVER_BASE_DIR, COVER_CROPPED_BASE_DIR
 from image import crop_thumbnail_to_square
 from notifier import send_discord_notification
 
@@ -70,6 +70,7 @@ def process_download(query: str) -> None:
     month_folder = datetime.now().strftime("%Y-%m")
     audio_dir = os.path.join(AUDIO_BASE_DIR, month_folder)
     cover_dir = os.path.join(COVER_BASE_DIR, month_folder)
+    cropped_dir = os.path.join(COVER_CROPPED_BASE_DIR, month_folder)
 
     target = _build_download_target(query)
     ydl_opts = _build_ydl_opts(audio_dir, cover_dir)
@@ -86,7 +87,7 @@ def process_download(query: str) -> None:
 
             ydl.download([target])
 
-        crop_thumbnail_to_square(base_filename, cover_dir)
+        crop_thumbnail_to_square(base_filename, cover_dir, cropped_dir)
 
         display_name = _build_display_name(info)
         logger.info("Downloaded and archived to %s: %s", month_folder, display_name)
