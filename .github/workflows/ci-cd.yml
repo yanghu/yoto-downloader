@@ -25,7 +25,7 @@ jobs:
         run: pip install -r requirements-test.txt
 
       - name: Run unit tests
-        run: pytest tests/ -m "not smoke" -v
+        run: python -m pytest tests/ -m "not smoke" -v
 
   # -------------------------------------------------------------------------
   # CD: build and push Docker image to Docker Hub
