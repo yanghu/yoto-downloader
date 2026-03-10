@@ -1010,6 +1010,7 @@
             let allSongs = [];
             let selectedPaths = new Set();
             let layoutMode = localStorage.getItem('yoto-layout-mode') || 'list';
+            let lastClickedPath = null;
 
             // ─────────────────── DOM refs ───────────────────
             const listViewWrapper = document.getElementById('list-view-wrapper');
@@ -1124,8 +1125,7 @@
                 return `
         <div class="song-row${selectedClass}" data-path="${esc(song.audio_path)}">
             <input type="checkbox" class="checkbox item-checkbox" ${checked}
-                   data-path="${esc(song.audio_path)}"
-                   onclick="event.stopPropagation()">
+                   data-path="${esc(song.audio_path)}">
             ${coverImg}
             <div class="row-info">
                 <div class="row-title" title="${esc(song.title)}">${esc(song.title)}</div>
@@ -1153,8 +1153,7 @@
                 return `
             <div class="song-card${selectedClass}" data-path="${esc(song.audio_path)}">
                 <input type="checkbox" class="checkbox card-checkbox item-checkbox" ${checked}
-                       data-path="${esc(song.audio_path)}"
-                       onclick="event.stopPropagation()">
+                       data-path="${esc(song.audio_path)}">
                 ${dupeBadge}
                 ${coverImg}
                 <div class="card-body">
@@ -1202,17 +1201,49 @@
 
             // Delegate clicks on both containers
             function handleContainerClick(e) {
-                const cb = e.target.closest('.item-checkbox');
-                if (cb) {
-                    toggleSelect(cb.dataset.path, cb.checked);
-                    return;
-                }
                 const item = e.target.closest('.song-row, .song-card');
-                if (item) {
-                    const checkbox = item.querySelector('.item-checkbox');
+                if (!item) return;
+
+                const isCbClick = !!e.target.closest('.item-checkbox');
+                const container = getActiveContainer();
+                const selector = getItemSelector();
+                const allItems = [...container.querySelectorAll(selector)];
+                const currentIndex = allItems.indexOf(item);
+                if (currentIndex === -1) return;
+
+                if (e.shiftKey && lastClickedPath !== null) {
+                    // Range select: find the anchor item
+                    const anchorIndex = allItems.findIndex(i => i.dataset.path === lastClickedPath);
+                    if (anchorIndex !== -1) {
+                        // If user shift-clicked a checkbox, revert the browser's auto-toggle
+                        // so the range select logic controls the final state
+                        if (isCbClick) {
+                            const clickedCb = e.target.closest('.item-checkbox');
+                            clickedCb.checked = !clickedCb.checked;
+                        }
+                        const start = Math.min(anchorIndex, currentIndex);
+                        const end = Math.max(anchorIndex, currentIndex);
+                        for (let i = start; i <= end; i++) {
+                            const cb = allItems[i].querySelector('.item-checkbox');
+                            cb.checked = true;
+                            selectedPaths.add(cb.dataset.path);
+                            allItems[i].classList.add('selected');
+                        }
+                        updateSelection();
+                        return;
+                    }
+                }
+
+                // Normal (non-shift) click
+                const checkbox = item.querySelector('.item-checkbox');
+                if (isCbClick) {
+                    // Checkbox was clicked — browser already toggled it
+                    toggleSelect(checkbox.dataset.path, checkbox.checked);
+                } else {
                     checkbox.checked = !checkbox.checked;
                     toggleSelect(checkbox.dataset.path, checkbox.checked);
                 }
+                lastClickedPath = checkbox.dataset.path;
             }
 
             songList.addEventListener('click', handleContainerClick);
