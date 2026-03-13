@@ -17,6 +17,11 @@ def record_download(url: str) -> None:
     _seen.add((_today(), url))
 
 
+def remove_download(url: str) -> None:
+    """Remove a URL from the seen-set so a failed download can be retried."""
+    _seen.discard((_today(), url))
+
+
 def _today() -> str:
     return date.today().isoformat()
 

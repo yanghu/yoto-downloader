@@ -9,6 +9,7 @@ import yt_dlp
 from config import AUDIO_BASE_DIR, COVER_BASE_DIR, COVER_CROPPED_BASE_DIR
 from image import crop_thumbnail_to_square
 from notifier import send_discord_notification
+from validator import remove_download
 
 logger = logging.getLogger(__name__)
 
@@ -97,4 +98,5 @@ def process_download(query: str) -> None:
 
     except Exception as exc:
         logger.error("Download failed for %s: %s", query, exc)
+        remove_download(query)
         send_discord_notification(query, success=False, detail=str(exc))

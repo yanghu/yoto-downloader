@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch
-from validator import validate_url, extract_url_id, is_duplicate, record_download, _seen
+from validator import validate_url, extract_url_id, is_duplicate, record_download, remove_download, _seen
 
 
 # ---------------------------------------------------------------------------
@@ -106,4 +106,16 @@ class TestDuplicateDetection:
         record_download(url)
         with patch("validator._today", return_value="2099-12-31"):
             assert is_duplicate(url) is False
+
+    def test_failed_download_can_be_retried(self):
+        """A URL removed after failure should no longer be considered duplicate."""
+        url = "https://www.youtube.com/watch?v=abc123"
+        record_download(url)
+        assert is_duplicate(url) is True
+        remove_download(url)
+        assert is_duplicate(url) is False
+
+    def test_remove_nonexistent_url_is_safe(self):
+        """remove_download on an unrecorded URL should not raise."""
+        remove_download("https://www.youtube.com/watch?v=never_seen")
 
