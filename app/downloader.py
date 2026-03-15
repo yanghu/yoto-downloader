@@ -41,6 +41,13 @@ def _build_ydl_opts(audio_dir: str, cover_dir: str) -> dict:
         ],
         "writethumbnail": True,
         "updatetime": False,
+        # Use Android/iOS clients to avoid "Video unavailable" errors caused by
+        # YouTube tightening restrictions on the default web client extractor.
+        "extractor_args": {
+            "youtube": {
+                "client": ["android", "ios", "web"],
+            }
+        },
     }
 
 
