@@ -43,9 +43,13 @@ def _build_ydl_opts(audio_dir: str, cover_dir: str) -> dict:
         "updatetime": False,
         # Use Android/iOS clients to avoid "Video unavailable" errors caused by
         # YouTube tightening restrictions on the default web client extractor.
+        # Force player_js_variant=main to avoid the tv-player-ias.js variant,
+        # which causes deno to crash with "Cannot read properties of undefined
+        # (reading 'origin')" when solving signature/n challenges.
         "extractor_args": {
             "youtube": {
                 "client": ["android", "ios", "web"],
+                "player_js_variant": ["main"],
             }
         },
     }
