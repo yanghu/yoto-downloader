@@ -4,13 +4,7 @@ DOCKER_USER ?= yang517
 IMAGE_NAME   = yoto-downloader
 TAG          ?= latest
 
-# NAS deployment — set these in .env or override on the command line
-NAS_USER           ?= admin
-NAS_IP             ?= 192.168.1.1
-NAS_DIR            ?= /volume1/docker/yoto-downloader
-NAS_COMPOSE_CMD    ?= sudo /usr/local/bin/docker-compose
-
-.PHONY: dev dev-down dev-logs test smoke build push deploy-nas help
+.PHONY: dev dev-down dev-logs test smoke build push help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -54,14 +48,3 @@ build: ## Build the Docker image
 push: build ## Build and push the Docker image to Docker Hub
 	docker push $(DOCKER_USER)/$(IMAGE_NAME):$(TAG)
 
-# ---------------------------------------------------------------------------
-# NAS deployment
-# ---------------------------------------------------------------------------
-
-deploy-nas: ## Sync compose file, pull latest image, and restart on NAS via SSH (set NAS_USER/NAS_IP/NAS_DIR in .env)
-	@ssh $(NAS_USER)@$(NAS_IP) "test -f $(NAS_DIR)/.env || echo 'WARNING: $(NAS_DIR)/.env not found on NAS — create it from .env_example before the service will start correctly'"
-	@echo "Copying docker-compose.yml to $(NAS_USER)@$(NAS_IP):$(NAS_DIR)/ ..."
-	scp docker-compose.yml $(NAS_USER)@$(NAS_IP):$(NAS_DIR)/docker-compose.yml
-	@echo "Pulling latest image and restarting ..."
-	ssh $(NAS_USER)@$(NAS_IP) "cd $(NAS_DIR) && $(NAS_COMPOSE_CMD) pull && $(NAS_COMPOSE_CMD) up -d"
-	@echo "Done."
