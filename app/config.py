@@ -18,8 +18,8 @@ ARCHIVE_COVER_CROPPED_DIR = os.path.join(BASE_DOWNLOAD_DIR, "archive", "covers-c
 # Discord Webhook (optional; notifications are skipped when not set)
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
-# Log directory, mapped to Docker volume
-LOG_DIR = "/logs"
+# Log directory, mapped to Docker volume (override via LOG_DIR env var for tests)
+LOG_DIR = os.environ.get("LOG_DIR", "/logs")
 APP_LOG_PATH = os.path.join(LOG_DIR, "app.log")
 FAILED_LOG_PATH = os.path.join(LOG_DIR, "failed.log")
 
