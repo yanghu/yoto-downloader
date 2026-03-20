@@ -1,17 +1,33 @@
 """Background download task using yt-dlp."""
 
+import json
 import logging
 import os
 from datetime import datetime
 
 import yt_dlp
 
-from config import AUDIO_BASE_DIR, COVER_BASE_DIR, COVER_CROPPED_BASE_DIR
+from config import AUDIO_BASE_DIR, COVER_BASE_DIR, COVER_CROPPED_BASE_DIR, FAILED_LOG_PATH
 from image import crop_thumbnail_to_square
 from notifier import send_discord_notification
 from validator import remove_download
 
 logger = logging.getLogger(__name__)
+
+
+def _record_failure(url: str, error: str) -> None:
+    """Append a JSON line to failed.log for later retry."""
+    entry = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "url": url,
+        "error": error,
+    }
+    try:
+        with open(FAILED_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logger.warning("Could not write to failed.log: %s", e)
+
 
 # Filename template understood by yt-dlp (YouTube Music populates these fields)
 _NAME_TEMPLATE = "%(title)s - %(artist)s [%(album)s]"
@@ -109,5 +125,6 @@ def process_download(query: str) -> None:
 
     except Exception as exc:
         logger.error("Download failed for %s: %s", query, exc)
+        _record_failure(query, str(exc))
         remove_download(query)
         send_discord_notification(query, success=False, detail=str(exc))

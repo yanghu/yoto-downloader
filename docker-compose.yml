@@ -6,9 +6,14 @@ services:
     ports:
       - "8000:8000" # 暴露给局域网的端口
     volumes:
-      # 读取 .env 中的 DOWNLOAD_PATH 变量
       - ${DOWNLOAD_PATH}:/downloads
+      - ${LOG_PATH}:/logs
     environment:
       - TZ=America/Los_Angeles
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
     user: "${PUID}:${PGID}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

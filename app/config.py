@@ -18,6 +18,11 @@ ARCHIVE_COVER_CROPPED_DIR = os.path.join(BASE_DOWNLOAD_DIR, "archive", "covers-c
 # Discord Webhook (optional; notifications are skipped when not set)
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
+# Log directory, mapped to Docker volume
+LOG_DIR = "/logs"
+APP_LOG_PATH = os.path.join(LOG_DIR, "app.log")
+FAILED_LOG_PATH = os.path.join(LOG_DIR, "failed.log")
+
 
 def ensure_dirs() -> None:
     """Create all required download directories if they do not exist."""
@@ -28,5 +33,6 @@ def ensure_dirs() -> None:
         ARCHIVE_AUDIO_DIR,
         ARCHIVE_COVER_DIR,
         ARCHIVE_COVER_CROPPED_DIR,
+        LOG_DIR,
     ):
         os.makedirs(path, exist_ok=True)

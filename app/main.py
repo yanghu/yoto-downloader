@@ -6,11 +6,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import BASE_DOWNLOAD_DIR, ensure_dirs
+from logging_setup import setup_logging
 from downloader import process_download
 from file_manager import archive_all, archive_selected, delete_files, list_all_songs
 from validator import extract_url_id, is_duplicate, record_download, validate_url
 
 ensure_dirs()
+setup_logging()
 
 app = FastAPI(title="Yoto Downloader API")
 
