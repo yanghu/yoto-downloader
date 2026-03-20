@@ -1,3 +1,6 @@
+# Claude Code context file — contains local NAS details, kept local only
+CLAUDE.md
+
 # Downloads (Docker volume mount — don't commit media files)
 downloads/
 
