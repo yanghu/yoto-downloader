@@ -4,7 +4,13 @@ DOCKER_USER ?= yang517
 IMAGE_NAME   = yoto-downloader
 TAG          ?= latest
 
-.PHONY: dev dev-down dev-logs test smoke build push help
+# NAS deployment — set these in .env (never committed to git)
+NAS_USER        ?= admin
+NAS_IP          ?= 192.168.1.1
+NAS_DIR         ?= /volume1/docker/yoto_downloader
+NAS_COMPOSE_CMD ?= sudo /usr/local/bin/docker-compose
+
+.PHONY: dev dev-down dev-logs test smoke build push deploy help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -47,4 +53,11 @@ build: ## Build the Docker image
 
 push: build ## Build and push the Docker image to Docker Hub
 	docker push $(DOCKER_USER)/$(IMAGE_NAME):$(TAG)
+
+# ---------------------------------------------------------------------------
+# NAS deployment
+# ---------------------------------------------------------------------------
+
+deploy: ## Pull latest image and restart on NAS (set NAS_USER/NAS_IP/NAS_DIR in .env)
+	ssh $(NAS_USER)@$(NAS_IP) "cd $(NAS_DIR) && $(NAS_COMPOSE_CMD) pull && $(NAS_COMPOSE_CMD) up -d"
 
